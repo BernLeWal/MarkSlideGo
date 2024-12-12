@@ -148,7 +148,7 @@ if __name__ == "__main__":
         print(f"Usage: {sys.argv[0]} <course-title> <slides-title> <markdown-file> <num-questions> [target-file]")
         print()
         print("Example:")
-        print(f"{sys.argv[0]} \"Software Engineering 1 - Labor\" \"Introduction to Programming in C#\" \"catalogs/tw-kb/programming/csharp/csharp_intro.md\" 10")
+        print(f"{sys.argv[0]} \"Software Engineering 1 - Labor\" \"Introduction to Programming in C#\" \"catalogs/fhtw/programming/csharp/csharp_intro.md\" 10")
         sys.exit(0)
 
     # Path to the YAML file

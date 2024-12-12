@@ -59,7 +59,7 @@ def generate_course_topic(name, data_topic, course_title, data_course, placehold
             intermediate_file += ".md"
 
         if 'source' in slides[j]:
-            source_file = "../../catalogs/" + slides[j]['source']
+            source_file = "../../../catalogs/" + slides[j]['source']
             if is_source_newer(source_file, intermediate_file):
                 # Preprocess the source_file, replace placeholders
                 preprocess(source_file, intermediate_file, placeholders)
@@ -67,7 +67,7 @@ def generate_course_topic(name, data_topic, course_title, data_course, placehold
         if 'sources' in slides[j]:
             source_files = []
             for source in slides[j]['sources']:
-                source_files.append("../../catalogs/" + source)
+                source_files.append("../../../catalogs/" + source)
             if is_any_source_newer(source_files, intermediate_file):
                 # Preprocess the source files, replace placeholders
                 preprocess_multiple(source_files, intermediate_file, placeholders)

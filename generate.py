@@ -93,7 +93,12 @@ def copy_assets_to_output(content: str, source_file: str, target_file: str) -> N
         asset_source_path = os.path.abspath(os.path.join(source_dir, img_tag))
         target_img_tag = os.path.basename(img_tag)
         asset_target_path = os.path.abspath(os.path.join(target_assets_dir, target_img_tag))
-        shutil.copy2(asset_source_path, asset_target_path)
+        try:
+            shutil.copy2(asset_source_path, asset_target_path)
+        except FileNotFoundError:
+            logger.warning("Asset file %s not found (or is not readable) "
+            "and can't be copied to %s!", asset_source_path, asset_target_path)
+            continue
 
         # Calculate the new relative path from the target folder to the file
         relative_path = os.path.relpath(asset_target_path, target_dir).replace('\\', '/')
@@ -117,8 +122,9 @@ def preprocess(source_file: str, target_file: str, placeholders: dict) -> None:
             logger.error("Error: No templates found at %s. "
             "Please set put your template files into the '/_template' subdirectory", os.getcwd() )
             sys.exit(1)
-        logger.info("Using template from %s", TEMPLATE_DIR)
-        template_file = TEMPLATE_DIR + 'template.md'
+        template_file = os.path.join(TEMPLATE_DIR, 'template.md')
+        logger.info("Using template from %s", template_file)
+        logger.info("Working directory is %s", os.getcwd())
         with open(template_file, 'r', encoding="utf-8") as file:
             template = file.read()
         template = copy_assets_to_output(template, template_file, target_file)
@@ -154,8 +160,9 @@ def preprocess_multiple(source_files: list, target_file: str, placeholders: dict
         logger.error("Error: No templates found at %s. "
         "Please set put your template files into the '/_template' subdirectory", os.getcwd() )
         sys.exit(1)
-    logger.info("Using template from %s", TEMPLATE_DIR)
-    template_file = TEMPLATE_DIR + 'template.md'
+    template_file = os.path.join(TEMPLATE_DIR, 'template.md')
+    logger.info("Using template from %s", template_file)
+    logger.info("Working directory is %s", os.getcwd())
     with open(template_file, 'r', encoding="utf-8") as file:
         template = file.read()
     template = copy_assets_to_output(template, template_file, target_file)

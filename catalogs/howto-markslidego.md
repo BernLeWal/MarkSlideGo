@@ -23,7 +23,7 @@ _footer: ''
 _class : lead
 -->
 
-![bg](../../../../../../templates/tw/images/fh_technikum_wien_bg+logo_gross.jpg)
+![bg](marp/_template/images/background1.jpg)
 
 # Howto use MarkSlide Go 
 
