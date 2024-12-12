@@ -50,13 +50,7 @@ The scripts will iterate through the catalogs/ and create a slide-deck for every
 
 ### Generate slides per course
 
-In the courses/ directory a sub-dir for each (e.g. moodle) course is created.
-Inside the sub-directories there are YAML-files, containing the course-structure filled with the slides-config per topic.
-
-To generate all the slides for a moodle-course move inside the course-directory, and execute the following command:
-```shell
-~/dev/marp/courses/bic4_sam/$ python3 generate_course.py <coursefile>.yml
-```
+see [courses/README.md](./courses/README.md)
 
 ### Full-Text Search the Knowledge-Base
 
