@@ -29,18 +29,25 @@ if not os.path.exists(NPX_CMD):
     "to the .env file (or to the path of the installed tesseract executable).", NPX_CMD)
     sys.exit(1)
 
-TEMPLATE_DIR = os.environ.get('TEMPLATE_DIR', '')
-if not os.path.exists(TEMPLATE_DIR):
-    logger.error("Error: No templates found at %s."
-    "Please set the TEMPLATE_DIR environment variable "
-    "to the .env file (or to the path of the installed tesseract executable).", TEMPLATE_DIR)
-    sys.exit(1)
+
+# Find the template directory
+current_dir = os.getcwd()
+while True:
+    if "_template" in os.listdir(current_dir):
+        TEMPLATE_DIR = os.path.abspath(os.path.join(current_dir, "_template"))
+        break
+    parent_dir = os.path.dirname(current_dir)
+    if parent_dir == current_dir:
+        TEMPLATE_DIR = None
+        break
+    current_dir = parent_dir
+
 
 MARKSLIDE_DIR = os.environ.get('MARKSLIDE_DIR', '')
 if not os.path.exists(MARKSLIDE_DIR):
     logger.error("Error: MARKSLIDE_DIR not found at %s."
     "Please set the MARKSLIDE_DIR environment variable "
-    "to the .env file (or to the path of the installed tesseract executable).", MARKSLIDE_DIR)
+    "to the .env file (or to the path of the installed MarkSlideGo scripts).", MARKSLIDE_DIR)
     sys.exit(1)
 
 
@@ -106,6 +113,11 @@ def preprocess(source_file: str, target_file: str, placeholders: dict) -> None:
         logger.debug("Generating file: %s ...", target_file)
 
         # Prepare the template
+        if not TEMPLATE_DIR:
+            logger.error("Error: No templates found at %s. "
+            "Please set put your template files into the '/_template' subdirectory", os.getcwd() )
+            sys.exit(1)
+        logger.info("Using template from %s", TEMPLATE_DIR)
         template_file = TEMPLATE_DIR + 'template.md'
         with open(template_file, 'r', encoding="utf-8") as file:
             template = file.read()
@@ -138,6 +150,11 @@ def preprocess_multiple(source_files: list, target_file: str, placeholders: dict
     """ Preprocess multiple Markdown files, to replace variables. """
 
     # Prepare the template
+    if not TEMPLATE_DIR:
+        logger.error("Error: No templates found at %s. "
+        "Please set put your template files into the '/_template' subdirectory", os.getcwd() )
+        sys.exit(1)
+    logger.info("Using template from %s", TEMPLATE_DIR)
     template_file = TEMPLATE_DIR + 'template.md'
     with open(template_file, 'r', encoding="utf-8") as file:
         template = file.read()

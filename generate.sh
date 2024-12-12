@@ -15,4 +15,4 @@ output_file="$2"
 root_dir=$(dirname "$0")
 
 # Generate the output file
-npx marp --html --pdf-outlines --pdf-outlines.pages=false --allow-local-files --theme "$root_dir/theme/fhtw.css" "$input_file" -o "$output_file"
+npx marp --html --pdf-outlines --pdf-outlines.pages=false --allow-local-files --theme "$root_dir/_template/fhtw.css" "$input_file" -o "$output_file"

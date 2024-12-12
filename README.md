@@ -7,6 +7,9 @@ References:
 * Markdown Presentation Ecosystem [MARP Official Site](https://marp.app)
 * Markdown Explorer [VS Code Extension](https://github.com/BernLeWal/VSCode-MARX)
 
+TODO:
+* package.json --> fix "themeSet" property to use catalog's _template
+
 ## Installation
 
 * Create a [.env](.env) file in the project root. See [.env.sample](.env.sample)

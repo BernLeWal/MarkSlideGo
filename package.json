@@ -3,7 +3,7 @@
     "@marp-team/marp-cli": "^3.4.0"
   },
   "marp": {
-    "themeSet": "./theme/",
+    "themeSet": "./catalogs/fhtw/_template/",
     "html": true,
     "allowLocalFiles": true
   }

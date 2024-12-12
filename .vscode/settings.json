@@ -1,0 +1,5 @@
+{
+    "markdown.marp.themes": [
+        "./catalogs/fhtw/_template/fhtw.css"
+    ]
+}
