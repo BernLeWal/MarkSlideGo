@@ -23,11 +23,11 @@ TODO:
     ```
     Check if it works using:
     ```shell
-    npx @marp-team/marp-cli@latest
+    npx @marp-team/marp-cli@latest -v
     ```
 * Install Google-Chrome (required for the html-rendering)
 * Install the [Marp for VS Code](https://marketplace.visualstudio.com/items?itemName=marp-team.marp-vscode) extension
-* Activate VS Code-Setting: Markdown > Marp: Enable HTML  
+* Activate VS Code-Setting: Markdown > Marp: HTML  
     to support html-based styling and multi-column slides, see [https://github.com/orgs/marp-team/discussions/192#discussioncomment-1517399]
 * Install Tesseract  
     Installers see [https://www.baeldung.com/java-ocr-tesseract#setup], Set the path to the tesseract-executable in the [.env](.env) file.
@@ -40,13 +40,33 @@ TODO:
 
 ## Usage
 
+### Marp-only usage (without MarkSlideGo scripts) to generate slides
+
+* Change to the directory of the Markdown file
+* To generate HTML run from there:  
+    `npx marp <filename>.md -o <filename>.html --theme <path-to-_template-dir>/fhtw.css`  
+    Remarks: replace the path to the files you want to generate.
+* To generate PDF run:  
+    `npx marp <filename>.md -o <filename>.pdf --theme <path-to-_template-dir>/fhtw.css`  
+    Remarks: replace the path to the files you want to generate.
+
+### Automated generation of slides
+
 Use the following scripts to generate the slide-decks in various formats.
+
+#### Generate a specific slide-deck:
+
+* Change to the directory of the Markdown file
+* Generate as PDF (with outlines and notes): ```python3 generate.py <filename>.md <filename>.pdf```
+* Generate as HTML (presenter mode): ```python3 generate.py <filename>.md <filename>.html```
+* Generate as PPTX (with notes): ```python3 generate.py <filename>.md <filename>.pptx```
+
+#### Generate all slides:
+
 The scripts will iterate through the catalogs/ and create a slide-deck for every .md-file found there.
 
-### Generate all slides
-
-* Generate PDF (with outlines and notes): ```python3 generate_all.py```
-* Generate PPTX : ```python3 generate_all.py pptx```
+* Generate all as PDF (with outlines and notes): ```python3 generate_all.py```
+* Generate app as PPTX : ```python3 generate_all.py pptx```
 
 ### Generate slides per course
 
