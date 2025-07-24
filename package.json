@@ -1,10 +1,13 @@
 {
   "devDependencies": {
-    "@marp-team/marp-cli": "^3.4.0"
+    "@marp-team/marp-cli": "^4.2.1"
   },
   "marp": {
-    "themeSet": "./catalogs/fhtw/_template/",
+    "themeSet": "./courses/fhtw/_template/fhtw.css",
     "html": true,
     "allowLocalFiles": true
+  },
+  "dependencies": {
+    "@marp-team/marp-core": "^4.1.0"
   }
 }

@@ -168,3 +168,4 @@ node_modules/
 output/
 catalogs/
 courses/
+package-lock.json

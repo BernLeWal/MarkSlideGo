@@ -6,6 +6,7 @@ References:
 
 * Markdown Presentation Ecosystem [MARP Official Site](https://marp.app)
 * Markdown Explorer [VS Code Extension](https://github.com/BernLeWal/VSCode-MARX)
+* PyMuPDF4LLM: https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
 
 TODO:
 * package.json --> fix "themeSet" property to use catalog's _template
@@ -47,7 +48,7 @@ TODO:
     `npx marp <filename>.md -o <filename>.html --theme <path-to-_template-dir>/fhtw.css`  
     Remarks: replace the path to the files you want to generate.
 * To generate PDF run:  
-    `npx marp <filename>.md -o <filename>.pdf --theme <path-to-_template-dir>/fhtw.css`  
+    `npx marp <filename>.md -o <filename>.pdf --allow-local-files --theme <path-to-_template-dir>/fhtw.css`  
     Remarks: replace the path to the files you want to generate.
 
 ### Automated generation of slides
