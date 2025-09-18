@@ -39,7 +39,7 @@ TODO:
     pip install -r requirements.txt
     ```
 
-## Usage
+## Local Usage
 
 ### Marp-only usage (without MarkSlideGo scripts) to generate slides
 
@@ -86,4 +86,20 @@ Change to the directory of the PDF-file and run the tool:
 ```shell
 ~/dev/marp/catalogs/$ python3 pdf2text.py SpringBoot3-Infografik.pdf
 ~/dev/marp/catalogs/$ python3 pdf2md.py SpringBoot3-Infografik.pdf
+```
+
+## Usage with Docker
+
+### Build and Run on local Docker environment
+
+```shell
+docker compose build
+docker compose up -d
+docker exec -it markslidego bash
+```
+
+This opens a shell in the docker container, now you have to clone the courses, e.g. fhtw
+
+```shell
+git clone https://git.technikum-wien.at/walliscb-projectspace/kb/courses.git ./courses/fhtw
 ```

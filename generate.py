@@ -223,6 +223,8 @@ _footer: ''
 
 def is_source_newer(sourcefile :str, targetfile :str) -> bool:
     """ Check if the source file is newer than the target file. """
+    if not os.path.exists(sourcefile):
+        return False
     if not os.path.exists(targetfile):
         return True
 
@@ -245,7 +247,8 @@ def is_any_source_newer(sourcefiles :list, targetfile :str) -> bool:
 
     # Compare the modification times
     for sourcefile in sourcefiles:
-        if os.path.getmtime(sourcefile) > targetfile_time:
+        if os.path.exists(sourcefile) and \
+            os.path.getmtime(sourcefile) > targetfile_time:
             return True
 
     # If none of the source files are newer, return False

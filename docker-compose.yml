@@ -1,0 +1,14 @@
+services:
+  markslidego:
+    build: .
+    container_name: markslidego
+    working_dir: /app
+    env_file:
+      - .env
+    environment:
+      NVM_DIR: /root/.nvm
+      TESSERACT_CMD: /usr/bin/tesseract
+      NPX_CMD: /usr/bin/npx
+      MARKSLIDE_DIR: /app/
+    tty: true
+    stdin_open: true

@@ -73,17 +73,30 @@ def generate_course_topic(name, data_topic, course_title, data_course, placehold
                 preprocess_multiple(source_files, intermediate_file, placeholders)
 
         # Generate the slidedeck
-        if target_file != intermediate_file and is_source_newer(intermediate_file, target_file):
-            # Provide generation options
-            if 'options' in slides[j]:
-                options = slides[j]['options'].split(" ")
-                if '--scorm' in options:
-                    create_ims_manifest(target_file,
-                    data_course, course_title, placeholders['title'])
-            else:
-                options = None
+        if target_file != intermediate_file:
+            if not os.path.exists(intermediate_file):
+                # Use provided source from repo, so no preprocessing needed
+                provided_file = intermediate_file.replace('output/', 'moodle/')
+                # copy the provided file to the intermediate file
+                if os.path.exists(provided_file):
+                    os.makedirs(os.path.dirname(intermediate_file), exist_ok=True)
+                    with open(provided_file, 'r', encoding="utf-8") as src_file:
+                        with open(intermediate_file, 'w', encoding="utf-8") as dst_file:
+                            dst_file.write(src_file.read())
+                else:
+                    print(f"Warning: Provided file {provided_file} does not exist.")
 
-            generate(intermediate_file, target_file, options)
+            if is_source_newer(intermediate_file, target_file):
+                # Provide generation options
+                if 'options' in slides[j]:
+                    options = slides[j]['options'].split(" ")
+                    if '--scorm' in options:
+                        create_ims_manifest(target_file,
+                        data_course, course_title, placeholders['title'])
+                else:
+                    options = None
+
+                generate(intermediate_file, target_file, options)
 
         # Generate questions
         if 'questions' in slides[j]:

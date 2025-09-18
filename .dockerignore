@@ -1,0 +1,12 @@
+__pycache__/
+catalogs/
+courses/
+docs/
+output/
+!*.sh
+!*.py
+!requirements.txt
+!package.json
+!README.md
+!LICENSE
+!.env
