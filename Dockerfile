@@ -1,9 +1,8 @@
-# Best-practices Dockerfile for MarkSlideGo project
 FROM python:3.12-slim
 
 # Install system dependencies, tesseract with English and German training data, and git client
 RUN apt-get update && \
-    apt-get install -y curl wget sudo gnupg2 git tesseract-ocr tesseract-ocr-eng tesseract-ocr-deu && \
+    apt-get install -y curl wget sudo gnupg2 git zip tesseract-ocr tesseract-ocr-eng tesseract-ocr-deu && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Google Chrome

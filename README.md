@@ -8,6 +8,8 @@ References:
 * Markdown Explorer [VS Code Extension](https://github.com/BernLeWal/VSCode-MARX)
 * PyMuPDF4LLM: https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
 
+GitHub Repository of the project: [MarkSlideGo](https://github.com/BernLeWal/MarkSlideGo)
+
 TODO:
 * package.json --> fix "themeSet" property to use catalog's _template
 
@@ -103,3 +105,52 @@ This opens a shell in the docker container, now you have to clone the courses, e
 ```shell
 git clone https://git.technikum-wien.at/walliscb-projectspace/kb/courses.git ./courses/fhtw
 ```
+
+Then run the generation process manually
+
+```shell
+python generate_course.py fhtw/bif3_swen1
+```
+
+Afterwards you'll find a ZIP file with all the generated artifacts in `/app/courses/fhtw/output/bif3_swen1.zip`.
+
+### Build Docker Image for Docker Hubs
+
+Build the image locally:
+
+```shell
+docker build -t markslidego .
+docker tag markslidego markslidego:latest
+# Verfiy if created
+docker images markslidego
+```
+
+Publish the image to the hub.docker.com registry:  
+Attention: Replace *codepunx* with your own registry username.
+
+```shell
+docker tag markslidego:latest codepunx/markslidego:latest
+
+docker login
+docker push codepunx/markslidego:latest
+```
+
+Run the Docker image via Docker Hub:  
+Remarks: No python, NodeJS, etc. .. tools need to be installed locally, just Docker.
+```shell
+docker run -it --rm codepunx/markslidego /bin/bash
+```
+
+This opens a shell in the docker container, now you have to clone the courses
+
+```shell
+git clone {{your-remote-repo}} ./courses/{{course-name}}
+```
+
+Then run the generation process manually
+
+```shell
+python generate_course.py {{course-name}}
+```
+
+Afterwards you'll find a ZIP file with all the generated artifacts in `/app/courses/{course}/output/{course}.zip`.

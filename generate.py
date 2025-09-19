@@ -155,7 +155,7 @@ def preprocess(source_file: str, target_file: str, placeholders: dict) -> None:
         with open(target_file, 'w', encoding="utf-8") as file:
             file.write(content)
     else:
-        logger.warning("Source file %s not found or is not readable", source_file)
+        logger.warning("Source file %s not found or not readable, skipping generation of %s", source_file,target_file)
 
 
 
@@ -179,6 +179,7 @@ def preprocess_multiple(source_files: list, target_file: str, placeholders: dict
 
 """
     content = ""
+    failed = False
 
     for source_file in source_files:
         # Check if the source_file exists and is readable
@@ -213,7 +214,12 @@ _footer: ''
             content = content + "\n---\n".join(remaining_slides)
         else:
             logger.warning("Source file %s not found or is not readable", source_file)
+            failed = True
 
+    if failed:
+        logger.warning("Source file(s) not found, skipping generation of %s", target_file)
+        return
+    
     # Build the complete content
     toc += "\n---\n"
     content = template + toc + content
