@@ -30,17 +30,24 @@ if not os.path.exists(NPX_CMD):
     sys.exit(1)
 
 
-# Find the template directory
-current_dir = os.getcwd()
-while True:
-    if "_template" in os.listdir(current_dir):
-        TEMPLATE_DIR = os.path.abspath(os.path.join(current_dir, "_template"))
-        break
-    parent_dir = os.path.dirname(current_dir)
-    if parent_dir == current_dir:
-        TEMPLATE_DIR = None
-        break
-    current_dir = parent_dir
+TEMPLATE_DIR = os.environ.get('TEMPLATE_DIR', '')
+def find_template_directory() -> None:
+    # Find the template directory
+    global TEMPLATE_DIR
+
+    if TEMPLATE_DIR and os.path.exists(TEMPLATE_DIR):
+        return
+    
+    current_dir = os.getcwd()
+    while True:
+        if "_template" in os.listdir(current_dir):
+            TEMPLATE_DIR = os.path.abspath(os.path.join(current_dir, "_template"))
+            break
+        parent_dir = os.path.dirname(current_dir)
+        if parent_dir == current_dir:
+            TEMPLATE_DIR = None
+            break
+        current_dir = parent_dir
 
 
 MARKSLIDE_DIR = os.environ.get('MARKSLIDE_DIR', '')
@@ -120,7 +127,7 @@ def preprocess(source_file: str, target_file: str, placeholders: dict) -> None:
         # Prepare the template
         if not TEMPLATE_DIR:
             logger.error("Error: No templates found at %s. "
-            "Please set put your template files into the '/_template' subdirectory", os.getcwd() )
+            "Please put your template files into the '/_template' subdirectory", os.getcwd() )
             sys.exit(1)
         template_file = os.path.join(TEMPLATE_DIR, 'template.md')
         logger.info("Using template from %s", template_file)
@@ -286,7 +293,7 @@ def create_zip_archive(target: str) -> None:
         zipf.write(setup_file, os.path.relpath(setup_file, start=MARKSLIDE_DIR))
 
 
-def generate(source: str, target: str, options: list = None) -> None:
+def generate(source: str, target: str, options: list|None = None) -> bool:
     """ Generate a PDF, PPTX or HTML file from a Markdown file using Marp. """
     # Check if the source file exists and is readable
     if os.access(source, os.R_OK):
@@ -300,7 +307,9 @@ def generate(source: str, target: str, options: list = None) -> None:
             create_zip_archive(target)
     else:
         logger.warning("Source file %s not found or is not readable", source)
+        return False
 
+    return True
 
 
 if __name__ == "__main__":
@@ -309,6 +318,8 @@ if __name__ == "__main__":
         print(f"Usage: {sys.argv[0]} <input-file.md> <output-file.?> [options]")
         print("Options: --zip")
         sys.exit(0)
+
+    find_template_directory()
 
     # Path to the YAML file
     input_file = sys.argv[1]
