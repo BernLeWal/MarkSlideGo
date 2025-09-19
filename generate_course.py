@@ -161,14 +161,17 @@ def generate_course(yaml_file: str, topic: str|None = None, md_file: str|None = 
             zip_file = os.path.join(topic_output_dir, "..", f"{topic}.zip")
             if os.path.exists(zip_file):
                 os.remove(zip_file)
-            with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                for root, dirs, files in os.walk(topic_output_dir):
-                    for file in files:
-                        if file == f"{topic}.zip":
-                            continue  # Don't include the zip file itself
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.relpath(file_path, topic_output_dir)
-                        zipf.write(file_path, arcname)        
+            try:
+                with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                    for root, dirs, files in os.walk(topic_output_dir):
+                        for file in files:
+                            if file == f"{topic}.zip":
+                                continue  # Don't include the zip file itself
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, topic_output_dir)
+                            zipf.write(file_path, arcname)        
+            except Exception as e:
+                print(f"Error creating zip file {zip_file}: {e}")
 
     # if topic is not specified, then create a zip file of the course
     if topic is None:
@@ -176,14 +179,17 @@ def generate_course(yaml_file: str, topic: str|None = None, md_file: str|None = 
         zip_file = os.path.join(course_output_dir, os.path.basename(yaml_file).replace(".yml", ".zip"))
         if os.path.exists(zip_file):
             os.remove(zip_file)
-        with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk(course_output_dir):
-                for file in files:
-                    if file == os.path.basename(zip_file):
-                        continue  # Don't include the zip file itself
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, course_output_dir)
-                    zipf.write(file_path, arcname)        
+        try:
+            with zipfile.ZipFile(zip_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                for root, dirs, files in os.walk(course_output_dir):
+                    for file in files:
+                        if file == os.path.basename(zip_file):
+                            continue  # Don't include the zip file itself
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, course_output_dir)
+                        zipf.write(file_path, arcname)        
+        except Exception as e:
+            print(f"Error creating zip file {zip_file}: {e}")
 
 
     return output_count
@@ -211,12 +217,14 @@ if __name__ == "__main__":
     topic = None
     if len(sys.argv) > 2:
         topic = sys.argv[2]
-    if topic == "." or topic == "*":
+    if topic == "." or topic == "*" or topic == "":
         topic = None
 
     md_file = None
     if len(sys.argv) > 3:
         md_file = sys.argv[3]
+    if md_file == "." or md_file == "*" or md_file == "":
+        md_file = None
 
     # Change into course-directory and generate the course
     os.chdir(os.path.dirname(course_path))
