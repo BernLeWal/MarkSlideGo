@@ -1,7 +1,7 @@
 import os
 import shutil
 import pytest
-from generate_moodle import MoodleGenerator, MoodleFile, MoodleActivity, MoodleSection
+from generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
 
 @pytest.fixture(autouse=True)
 def setup_and_teardown_tmp_files(tmp_path):
@@ -22,7 +22,7 @@ def setup_and_teardown_tmp_files(tmp_path):
     shutil.rmtree(tmp_path, ignore_errors=True)
 
 def test_generate_empty_course(tmp_path):
-    generator = MoodleGenerator("Sample Course", 16200)
+    generator = MoodleBackup("Sample Course", 16200)
     output_file = tmp_path / "output" / "backup-moodle2-course-empty.mbz"
     generator.generate_mbz(str(output_file))
     # Check that the mbz file was created
@@ -32,7 +32,7 @@ def test_generate_empty_course(tmp_path):
     assert zipfile.is_zipfile(output_file)
 
 def test_generate_course_with_files(tmp_path):
-    generator = MoodleGenerator("Sample Course", 16200)
+    generator = MoodleBackup("Sample Course", 16200)
     pdf_file1 = MoodleFile(str(tmp_path / "java.kickstart.pdf"))
     generator.files.append(pdf_file1)
     pdf_file2 = MoodleFile(str(tmp_path / "csharp-kickstart.pdf"))

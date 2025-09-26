@@ -6,12 +6,66 @@ import time
 import zipfile
 
 
-class MoodleFile:
+class MoodleBase:
+    def __init__(self):
+        self.MOODLE_VERSION = "2024100705"
+        self.MOODLE_RELEASE = "4.5.5 (Build: 20250609)"
+        self.BACKUP_VERSION ="2024100700"
+        self.BACKUP_RELEASE = "4.5"
+
+        self.ROLE_ID = "5"
+        self.USER_ID = "17726"
+        
+        self.current_timestamp = int(time.time())
+
+
+    def generate_empty(self, filename, rootElemName, childElemName = None) -> None:
+        file_content = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        if rootElemName:
+            file_content += f"<{rootElemName}>\n"
+        if childElemName:
+            if isinstance(childElemName, list):
+                for child in childElemName:
+                    if isinstance(child, str):
+                        file_content += f"  <{child}>\n"
+                        file_content += f"  </{child}>\n"
+            elif isinstance(childElemName, str):
+                file_content += f"  <{childElemName}>\n"
+                file_content += f"  </{childElemName}>\n"
+        
+        if rootElemName:
+            file_content += f"</{rootElemName}>\n"
+        with open(filename, "w", encoding="utf-8") as f:
+            f.write(file_content)
+
+
+    def remove_dir_recursively(self, path:str) -> None:
+        """ Remove a directory and all its contents recursively """
+        if os.path.exists(path):
+            for root, dirs, files in os.walk(path, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+            os.rmdir(path)
+
+
+    def remove_file_if_exists(self, filepath:str) -> None:
+        """ Remove a file if it exists """
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+
+
+    
+
+class MoodleFile(MoodleBase):
 
     next_file_id = 10000
     next_context_id = 15000
 
     def __init__(self, filepath:str):
+        super().__init__()
         self.file_id = MoodleFile.next_file_id
         MoodleFile.next_file_id += 1
         self.context_id = MoodleFile.next_context_id
@@ -68,12 +122,32 @@ class MoodleFile:
             return "application/octet-stream"  # default binary type
 
 
-class MoodleActivity:
+    def generate(self) -> None:
+        files_subdir = self.content_hash[0:2]
+        os.makedirs(f"{files_subdir}", exist_ok=True)
+        os.chdir(f"{files_subdir}")
+        # copy file contents to self.content_hash
+        with open(self.content_hash, "wb") as out_file:
+            # open source file and copy contents
+            with open(os.path.join("..", "..", "..", "..", self.filepath), "rb") as in_file:
+                while True:
+                    data = in_file.read(65536)  # Read in 64k chunks
+                    if not data:
+                        break
+                    out_file.write(data)
+        os.chdir("..")
+
+
+
+
+
+class MoodleActivity(MoodleBase):
 
     next_activity_id = 20000
     next_module_id = 25000
 
     def __init__(self, title:str):
+        super().__init__()
         self.id = MoodleActivity.next_activity_id
         MoodleActivity.next_activity_id += 1
         self.module_id = MoodleActivity.next_module_id
@@ -84,162 +158,12 @@ class MoodleActivity:
         self.section:MoodleSection = None
 
 
-class MoodleSection:
-
-    next_section_id = 30000
-
-    def __init__(self, title:str, number:int):
-        self.id = MoodleSection.next_section_id
-        MoodleSection.next_section_id += 1
-        self.title = title
-        self.number = number
-
-        self.activities:list[MoodleActivity] = [] 
-
-
-class MoodleGenerator:
-    def __init__(self, course_name, course_id):
-        self.course_name = course_name
-        self.course_shortname = course_name.replace(" ", "-").upper()
-        self.course_id = course_id
-        self.current_timestamp = int(time.time())
-
-        self.MOODLE_VERSION = "2024100705"
-        self.MOODLE_RELEASE = "4.5.5 (Build: 20250609)"
-        self.BACKUP_VERSION ="2024100700"
-        self.BACKUP_RELEASE = "4.5"
-
-        self.ROLE_ID = "5"
-        self.USER_ID = "17726"
-
-        self.files:list[MoodleFile] = []
-        self.activities:list[MoodleActivity] = []
-        self.sections:list[MoodleSection] = []
-
-        # generate a SHA1 hash from course name and id
-        hash_input = f"{course_name}{course_id}".encode("utf-8")
-        self.backup_hash = hashlib.sha1(hash_input).hexdigest()
-
-
-    def remove_dir_recursively(self, path:str) -> None:
-        """ Remove a directory and all its contents recursively """
-        if os.path.exists(path):
-            for root, dirs, files in os.walk(path, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir(path)
-
-
-    def remove_file_if_exists(self, filepath:str) -> None:
-        """ Remove a file if it exists """
-        if os.path.exists(filepath):
-            os.remove(filepath)
-
-
-    def zip_current_directory_to_mbz(self) -> None:
-        mbz_filename = os.path.basename(os.getcwd()) + ".mbz"
-        zip_path = os.path.join("..", mbz_filename)
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk("."):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, ".")
-                    zipf.write(file_path, arcname)
-
-
-    def generate_empty(self, filename, rootElemName, childElemName = None) -> None:
-        file_content = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        if rootElemName:
-            file_content += f"<{rootElemName}>\n"
-        if childElemName:
-            if isinstance(childElemName, list):
-                for child in childElemName:
-                    if isinstance(child, str):
-                        file_content += f"  <{child}>\n"
-                        file_content += f"  </{child}>\n"
-            elif isinstance(childElemName, str):
-                file_content += f"  <{childElemName}>\n"
-                file_content += f"  </{childElemName}>\n"
-        
-        if rootElemName:
-            file_content += f"</{rootElemName}>\n"
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(file_content)
-
-
-    def generate_files(self) -> None:
-        file_content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        file_content += "<files>\n"
-        for f in self.files:
-            file_content += f"""  <file id="{f.file_id}">
-    <contenthash>{f.content_hash}</contenthash>
-    <contextid>{f.context_id}</contextid>
-    <component>mod_resource</component>
-    <filearea>content</filearea>
-    <itemid>0</itemid>
-    <filepath>/</filepath>
-    <filename>{f.filename}</filename>
-    <userid>{self.USER_ID}</userid>
-    <filesize>{f.filesize}</filesize>
-    <mimetype>{f.mimetype}</mimetype>
-    <status>0</status>
-    <timecreated>{f.creationtime}</timecreated>
-    <timemodified>{f.modificationtime}</timemodified>
-    <source>{f.filename}</source>
-    <author>$@NULL@$</author>
-    <license>allrightsreserved</license>
-    <sortorder>1</sortorder>
-    <repositorytype>$@NULL@$</repositorytype>
-    <repositoryid>$@NULL@$</repositoryid>
-    <reference>$@NULL@$</reference>
-  </file>
-"""
-        file_content += "</files>\n"
-        with open("files.xml", "w", encoding="utf-8") as f:
-            f.write(file_content)
-
-
-
-    def generate_groups(self) -> None:
-        file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<groups>
-  <groupcustomfields>
-  </groupcustomfields>
-  <groupings>
-    <groupingcustomfields>
-    </groupingcustomfields>
-  </groupings>
-</groups>
-"""
-        with open("groups.xml", "w", encoding="utf-8") as f:
-            f.write(file_content)
-
-
-    def generate_roles(self) -> None:
-        file_content = """<?xml version="1.0" encoding="UTF-8"?>
-<roles_definition>
-  <role id=\"""" + self.ROLE_ID + """\">
-    <name>{mlang de}TeilnehmerIn{mlang}{mlang en}Participant{mlang}</name>
-    <shortname>student</shortname>
-    <nameincourse>$@NULL@$</nameincourse>
-    <description>Standardrolle - für Studierende in Lehrveranstaltungen und für normale TeilnehmerInnen in nicht-LV Kursen</description>
-    <sortorder>13</sortorder>
-    <archetype>student</archetype>
-  </role>
-</roles_definition>
-"""
-        with open("roles.xml", "w", encoding="utf-8") as f:
-            f.write(file_content)
-
-
-    def generate_activity_inforef(self, activity:MoodleActivity) -> None:
+    def generate_inforef(self) -> None:
         file_content = """<?xml version="1.0" encoding="UTF-8"?>
 <inforef>
   <fileref>
 """
-        for f in activity.files:
+        for f in self.files:
             file_content += f"""    <file>
       <id>{f.file_id}</id>
     </file>
@@ -251,12 +175,12 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_activity_module(self, activity:MoodleActivity) -> None:
+    def generate_module(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<module id="{activity.module_id}" version="2024100700">
+<module id="{self.module_id}" version="2024100700">
   <modulename>resource</modulename>
-  <sectionid>{activity.section.id}</sectionid>
-  <sectionnumber>{activity.section.number}</sectionnumber>
+  <sectionid>{self.section.id}</sectionid>
+  <sectionnumber>{self.section.number}</sectionnumber>
   <idnumber>$@NULL@$</idnumber>
   <added>{self.current_timestamp}</added>
   <score>0</score>
@@ -287,11 +211,11 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_activity_resource(self, activity:MoodleActivity) -> None:
+    def generate_resource(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<activity id="{activity.id}" moduleid="{activity.module_id}" modulename="resource" contextid="{activity.files[0].context_id if activity.files else 0}">
-  <resource id="{activity.id}">
-    <name>{activity.title}</name>
+<activity id="{self.id}" moduleid="{self.module_id}" modulename="resource" contextid="{self.files[0].context_id if self.files else 0}">
+  <resource id="{self.id}">
+    <name>{self.title}</name>
     <intro></intro>
     <introformat>1</introformat>
     <tobemigrated>0</tobemigrated>
@@ -309,11 +233,96 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_course_course(self) -> None:
+    def generate(self) -> None:
+        os.makedirs(f"resource_{self.module_id}", exist_ok=True)
+        os.chdir(f"resource_{self.module_id}")
+
+        self.generate_empty("grade_history.xml", "grade_history", "grade_grades")
+        self.generate_empty("grades.xml", "activity_gradebook", ["grade_items", "grade_letters"])
+        self.generate_inforef()
+        self.generate_module()
+        self.generate_resource()
+        self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
+
+        os.chdir("..")  # leave resource_* directory
+
+
+class MoodleSection(MoodleBase):
+
+    next_section_id = 30000
+
+    def __init__(self, title:str, number:int):
+        super().__init__()
+        self.id = MoodleSection.next_section_id
+        MoodleSection.next_section_id += 1
+        self.title = title
+        self.number = number
+
+        self.activities:list[MoodleActivity] = [] 
+
+
+    def generate_section(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<course id="{self.course_id}" contextid="946563">
-  <shortname>{self.course_shortname}</shortname>
-  <fullname>{self.course_name}</fullname>
+<section id="{self.id}">
+  <number>{self.number}</number>
+  <name>{self.title}</name>
+  <summary>{self.title}</summary>
+  <summaryformat>1</summaryformat>
+  <sequence>728313,1956075,1956077,1956079,1956080,1661072,1661187,678060,728279,728280,1992663</sequence>
+  <visible>1</visible>
+  <availabilityjson>{'{"op":"&amp;","c":[],"showc":[]}'}</availabilityjson>
+  <component>$@NULL@$</component>
+  <itemid>$@NULL@$</itemid>
+  <timemodified>{self.current_timestamp}</timemodified>
+  <course_format_options id="163054">
+    <format>scfhtw</format>
+    <name>blockname</name>
+    <value></value>
+  </course_format_options>
+  <course_format_options id="163055">
+    <format>scfhtw</format>
+    <name>sectionblock</name>
+    <value>0</value>
+  </course_format_options>
+  <course_format_options id="163056">
+    <format>scfhtw</format>
+    <name>sectionstartdate</name>
+    <value>0</value>
+  </course_format_options>
+  <course_format_options id="163057">
+    <format>scfhtw</format>
+    <name>sectiontype</name>
+    <value>0</value>
+  </course_format_options>
+</section>
+"""
+        with open(f"section.xml", "w", encoding="utf-8") as f:
+            f.write(file_content)
+
+
+    def generate(self) -> None:
+        os.makedirs(f"section_{self.id}", exist_ok=True)
+        os.chdir(f"section_{self.id}")
+
+        self.generate_empty("inforef.xml", "inforef")
+        self.generate_section()
+
+        os.chdir("..")
+
+
+class MoodleCourse(MoodleBase):
+    def __init__(self, course_name, course_id):
+        super().__init__()
+        self.name = course_name
+        self.shortname = course_name.replace(" ", "-").upper()
+        self.id = course_id
+
+
+    def generate_course(self) -> None:
+        file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<course id="{self.id}" contextid="946563">
+  <shortname>{self.shortname}</shortname>
+  <fullname>{self.name}</fullname>
   <idnumber></idnumber>
   <summary></summary>
   <summaryformat>1</summaryformat>
@@ -446,7 +455,7 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_course_enrolments(self) -> None:
+    def generate_enrolments(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <enrolments>
   <enrols>
@@ -493,7 +502,7 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_course_inforef(self) -> None:
+    def generate_inforef(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <inforef>
   <roleref>
@@ -507,42 +516,107 @@ class MoodleGenerator:
             f.write(file_content)
 
 
-    def generate_section_section(self, section:MoodleSection) -> None:
-        file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<section id="168177">
-  <number>{section.number}</number>
-  <name>{section.title}</name>
-  <summary>{section.title}</summary>
-  <summaryformat>1</summaryformat>
-  <sequence>728313,1956075,1956077,1956079,1956080,1661072,1661187,678060,728279,728280,1992663</sequence>
-  <visible>1</visible>
-  <availabilityjson>{'{"op":"&amp;","c":[],"showc":[]}'}</availabilityjson>
-  <component>$@NULL@$</component>
-  <itemid>$@NULL@$</itemid>
-  <timemodified>{self.current_timestamp}</timemodified>
-  <course_format_options id="163054">
-    <format>scfhtw</format>
-    <name>blockname</name>
-    <value></value>
-  </course_format_options>
-  <course_format_options id="163055">
-    <format>scfhtw</format>
-    <name>sectionblock</name>
-    <value>0</value>
-  </course_format_options>
-  <course_format_options id="163056">
-    <format>scfhtw</format>
-    <name>sectionstartdate</name>
-    <value>0</value>
-  </course_format_options>
-  <course_format_options id="163057">
-    <format>scfhtw</format>
-    <name>sectiontype</name>
-    <value>0</value>
-  </course_format_options>
-</section>
+    def generate(self) -> None:
+        os.makedirs("course", exist_ok=True)
+        os.chdir("course")
+
+        self.generate_empty("completiondefaults.xml", "course_completion_defaults")
+        self.generate_course()
+        self.generate_enrolments()
+        self.generate_inforef()
+        self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
+
+        os.chdir("..")  # leave course directory
+
+
+
+
+class MoodleBackup(MoodleBase):
+    def __init__(self, course_name, course_id):
+        super().__init__()
+        self.course = MoodleCourse(course_name, course_id)
+        self.files:list[MoodleFile] = []
+        self.activities:list[MoodleActivity] = []
+        self.sections:list[MoodleSection] = []
+
+        # generate a SHA1 hash from course name and id
+        hash_input = f"{course_name}{course_id}".encode("utf-8")
+        self.backup_hash = hashlib.sha1(hash_input).hexdigest()
+
+
+    def zip_current_directory_to_mbz(self) -> None:
+        mbz_filename = os.path.basename(os.getcwd()) + ".mbz"
+        zip_path = os.path.join("..", mbz_filename)
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk("."):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, ".")
+                    zipf.write(file_path, arcname)
+
+
+    def generate_files(self) -> None:
+        file_content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        file_content += "<files>\n"
+        for f in self.files:
+            file_content += f"""  <file id="{f.file_id}">
+    <contenthash>{f.content_hash}</contenthash>
+    <contextid>{f.context_id}</contextid>
+    <component>mod_resource</component>
+    <filearea>content</filearea>
+    <itemid>0</itemid>
+    <filepath>/</filepath>
+    <filename>{f.filename}</filename>
+    <userid>{self.USER_ID}</userid>
+    <filesize>{f.filesize}</filesize>
+    <mimetype>{f.mimetype}</mimetype>
+    <status>0</status>
+    <timecreated>{f.creationtime}</timecreated>
+    <timemodified>{f.modificationtime}</timemodified>
+    <source>{f.filename}</source>
+    <author>$@NULL@$</author>
+    <license>allrightsreserved</license>
+    <sortorder>1</sortorder>
+    <repositorytype>$@NULL@$</repositorytype>
+    <repositoryid>$@NULL@$</repositoryid>
+    <reference>$@NULL@$</reference>
+  </file>
 """
-        with open(f"section.xml", "w", encoding="utf-8") as f:
+        file_content += "</files>\n"
+        with open("files.xml", "w", encoding="utf-8") as f:
+            f.write(file_content)
+
+
+
+    def generate_groups(self) -> None:
+        file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<groups>
+  <groupcustomfields>
+  </groupcustomfields>
+  <groupings>
+    <groupingcustomfields>
+    </groupingcustomfields>
+  </groupings>
+</groups>
+"""
+        with open("groups.xml", "w", encoding="utf-8") as f:
+            f.write(file_content)
+
+
+    def generate_roles(self) -> None:
+        file_content = """<?xml version="1.0" encoding="UTF-8"?>
+<roles_definition>
+  <role id=\"""" + self.ROLE_ID + """\">
+    <name>{mlang de}TeilnehmerIn{mlang}{mlang en}Participant{mlang}</name>
+    <shortname>student</shortname>
+    <nameincourse>$@NULL@$</nameincourse>
+    <description>Standardrolle - für Studierende in Lehrveranstaltungen und für normale TeilnehmerInnen in nicht-LV Kursen</description>
+    <sortorder>13</sortorder>
+    <archetype>student</archetype>
+  </role>
+</roles_definition>
+"""
+        with open("roles.xml", "w", encoding="utf-8") as f:
             f.write(file_content)
 
 
@@ -561,10 +635,10 @@ class MoodleGenerator:
     <include_file_references_to_external_content>0</include_file_references_to_external_content>
     <original_wwwroot>https://moodle.technikum-wien.at</original_wwwroot>
     <original_site_identifier_hash>6118578f64415b7ca246939bfb24e84a</original_site_identifier_hash>
-    <original_course_id>{self.course_id}</original_course_id>
+    <original_course_id>{self.course.id}</original_course_id>
     <original_course_format>scfhtw</original_course_format>
-    <original_course_fullname>{self.course_name}</original_course_fullname>
-    <original_course_shortname>{self.course_shortname}</original_course_shortname>
+    <original_course_fullname>{self.course.name}</original_course_fullname>
+    <original_course_shortname>{self.course.shortname}</original_course_shortname>
     <original_course_startdate>0</original_course_startdate>
     <original_course_enddate>0</original_course_enddate>
     <original_course_contextid>946563</original_course_contextid>
@@ -609,8 +683,8 @@ class MoodleGenerator:
             file_content += "      </sections>\n"
 
         file_content += f"""      <course>
-        <courseid>{self.course_id}</courseid>
-        <title>{self.course_shortname}</title>
+        <courseid>{self.course.id}</courseid>
+        <title>{self.course.shortname}</title>
         <directory>course</directory>
       </course>
     </contents>
@@ -779,71 +853,27 @@ class MoodleGenerator:
         if self.activities:
             os.makedirs("activities", exist_ok=True)
             os.chdir("activities")
-
             for activity in self.activities:
-                os.makedirs(f"resource_{activity.module_id}", exist_ok=True)
-                os.chdir(f"resource_{activity.module_id}")
-
-                self.generate_empty("grade_history.xml", "grade_history", "grade_grades")
-                self.generate_empty("grades.xml", "activity_gradebook", ["grade_items", "grade_letters"])
-                self.generate_activity_inforef(activity)
-                self.generate_activity_module(activity)
-                self.generate_activity_resource(activity)
-                self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
-
-                os.chdir("..")  # leave resource_* directory
-
+                activity.generate()
             os.chdir("..")  # leave activities directory
 
         # ----- /course -----
-        os.makedirs("course", exist_ok=True)
-        os.chdir("course")
-
-        self.generate_empty("completiondefaults.xml", "course_completion_defaults")
-        self.generate_course_course()
-        self.generate_course_enrolments()
-        self.generate_course_inforef()
-        self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
-
-        os.chdir("..")  # leave course directory
+        self.course.generate()
 
         # ----- /files -----
         if self.files:
             os.makedirs("files", exist_ok=True)
             os.chdir("files")
-
             for f in self.files:
-                files_subdir = f.content_hash[0:2]
-                os.makedirs(f"{files_subdir}", exist_ok=True)
-                os.chdir(f"{files_subdir}")
-                # copy file contents to f.content_hash
-                with open(f.content_hash, "wb") as out_file:
-                    # open source file and copy contents
-                    with open(os.path.join("..", "..", "..", "..", f.filepath), "rb") as in_file:
-                        while True:
-                            data = in_file.read(65536)  # Read in 64k chunks
-                            if not data:
-                                break
-                            out_file.write(data)
-                os.chdir("..")
-                pass
-
+                f.generate()
             os.chdir("..")  # leave files directory
 
         # ----- /sections -----
         if self.sections:
             os.makedirs("sections", exist_ok=True)
             os.chdir("sections")
-
             for section in self.sections:
-                os.makedirs(f"section_{section.id}", exist_ok=True)
-                os.chdir(f"section_{section.id}")
-
-                self.generate_empty("inforef.xml", "inforef")
-                self.generate_section_section(section)
-
-                os.chdir("..")
-
+                section.generate()
             os.chdir("..")
 
         # -------------------
@@ -858,15 +888,16 @@ class MoodleGenerator:
         print(f"Generated {mbz_filename} successfully.")
 
 
-
-
-if __name__ == "__main__":
-    generator = MoodleGenerator("Sample Course", 16200)
-
+# ------------------- Test Scenarios -------------------
+def test_empty():
     # Scenario 1: generate an empty course backup
+    generator = MoodleBackup("Empty Course", 16200)
     generator.generate_mbz("backup-moodle2-course-empty.mbz")
 
+
+def test_files():
     # Scenario 2: generate a course backup with file references
+    generator = MoodleBackup("Sample Course", 16200)
     pdf_file1 = MoodleFile("test/java-kickstart.pdf")
     generator.files.append(pdf_file1)
     pdf_file2 = MoodleFile("test/csharp-kickstart.pdf")
@@ -889,3 +920,7 @@ if __name__ == "__main__":
 
     generator.generate_mbz("backup-moodle2-course-2pdf.mbz")
 
+# ------------------- Main Program -------------------
+if __name__ == "__main__":
+    #test_empty()
+    test_files()
