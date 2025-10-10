@@ -2,6 +2,8 @@
 
 This project contains tools to manage a knowledge-base as hierarchicaly structured markdown-files. These files are converted to PDF- or HTML-slide decks using the MARP tool.
 
+![](./docs/img/markslidego-concept.png)
+
 References:
 
 * Markdown Presentation Ecosystem [MARP Official Site](https://marp.app)
@@ -10,10 +12,11 @@ References:
 
 GitHub Repository of the project: [MarkSlideGo](https://github.com/BernLeWal/MarkSlideGo)
 
-TODO:
-* package.json --> fix "themeSet" property to use catalog's _template
 
 ## Installation
+
+When you want to run the MARP-tool on your local machine, then you have to install the framework as follows.
+When you use the docker image for the generation process, then you just need docker installed and  forward to chapter "Usage with Docker".
 
 * Create a [.env](.env) file in the project root. See [.env.sample](.env.sample)
 * Install [Node.js](https://nodejs.org/en)  
@@ -41,7 +44,7 @@ TODO:
     pip install -r requirements.txt
     ```
 
-## Local Usage
+## Run MARP on your local machine
 
 ### Marp-only usage (without MarkSlideGo scripts) to generate slides
 
@@ -55,25 +58,61 @@ TODO:
 
 ### Automated generation of slides
 
-Use the following scripts to generate the slide-decks in various formats.
-
-#### Generate a specific slide-deck:
+Use the following scripts to generate the slide-decks in various formats:
 
 * Change to the directory of the Markdown file
 * Generate as PDF (with outlines and notes): ```python3 generate.py <filename>.md <filename>.pdf```
 * Generate as HTML (presenter mode): ```python3 generate.py <filename>.md <filename>.html```
 * Generate as PPTX (with notes): ```python3 generate.py <filename>.md <filename>.pptx```
 
-#### Generate all slides:
+### Automated generation of Moodle-course/-sections or -activities
 
-The scripts will iterate through the catalogs/ and create a slide-deck for every .md-file found there.
+You need to create a folder for your course under the [courses/](./courses/) directory - or just git clone your course-repos into it.
 
-* Generate all as PDF (with outlines and notes): ```python3 generate_all.py```
-* Generate app as PPTX : ```python3 generate_all.py pptx```
+Usage: `python generate_moodle.py <course> [<topic>] [<md_file>]`
 
-### Generate slides per course
+Examples (using the courses-repo of bif3-swen1):
+- generate complete course BIF3/SWEN1:  `python generate_moodle.py bif3-swen1`
+- generate specific topic SS-A only:    `generate_moodle.py bif3-swen1 SS-A`
+- generate specific markdown file only: `generate_moodle.py bif3-swen1 Class-1 java-kickstart.md`
+
+This will generate a Moodle Backup ZIP-File (.mbz) in the [output/](./output) subdirectory of your course directory. Just restore it in your Moodle LMS.
+
+How the script works:
+- it will recursivly collect all .md files having set `marp: true` in the contents.
+- the activity name will be taken from the `title` property
+- the section name will be taken from the directorys name where the .md-file is stored, or from the filename itself
+- if in the containig directory there is a README.md, the section title will be taken from there (the first line with `# ...`)
+
+### Generate course from selected material in catalog
 
 see [courses/README.md](./courses/README.md)
+
+## Run MARP using a Docker Image
+
+You can use the Docker Image `codepunx/markslidego` in order to run the MARP-Tool and Generation Scripts without installing any of the NodeJS, MARP or Python stuff on your machine.
+The only thing required is access to a docker installation.
+
+Run the Docker image via Docker Hub:  
+```shell
+docker run -it --rm codepunx/markslidego /bin/bash
+```
+
+This opens a shell in the docker container, now you have to clone the courses
+
+```shell
+git clone <your-remote-repo> ./courses/<course-dir>
+```
+
+Then run the generation process, e.g.
+
+```shell
+python generate_moodle.py <course-dir> [<filter_topic>] [<filter_md_file>]
+```
+
+Afterwards you'll find all the generated artifacts in `/app/courses/<course-dir>/output/`.
+
+## Further Tools
 
 ### Full-Text Search the Knowledge-Base
 
@@ -89,68 +128,3 @@ Change to the directory of the PDF-file and run the tool:
 ~/dev/marp/catalogs/$ python3 pdf2text.py SpringBoot3-Infografik.pdf
 ~/dev/marp/catalogs/$ python3 pdf2md.py SpringBoot3-Infografik.pdf
 ```
-
-## Usage with Docker
-
-### Build and Run on local Docker environment
-
-```shell
-docker compose build
-docker compose up -d
-docker exec -it markslidego bash
-```
-
-This opens a shell in the docker container, now you have to clone the courses, e.g. fhtw
-
-```shell
-git clone https://git.technikum-wien.at/walliscb-projectspace/kb/courses.git ./courses/fhtw
-```
-
-Then run the generation process manually
-
-```shell
-python generate_course.py fhtw/bif3_swen1
-```
-
-Afterwards you'll find a ZIP file with all the generated artifacts in `/app/courses/fhtw/output/bif3_swen1.zip`.
-
-### Build Docker Image for Docker Hubs
-
-Build the image locally:
-
-```shell
-docker build -t markslidego .
-docker tag markslidego markslidego:latest
-# Verfiy if created
-docker images markslidego
-```
-
-Publish the image to the hub.docker.com registry:  
-Attention: Replace *codepunx* with your own registry username.
-
-```shell
-docker tag markslidego:latest codepunx/markslidego:latest
-
-docker login
-docker push codepunx/markslidego:latest
-```
-
-Run the Docker image via Docker Hub:  
-Remarks: No python, NodeJS, etc. .. tools need to be installed locally, just Docker.
-```shell
-docker run -it --rm codepunx/markslidego /bin/bash
-```
-
-This opens a shell in the docker container, now you have to clone the courses
-
-```shell
-git clone {{your-remote-repo}} ./courses/{{course-name}}
-```
-
-Then run the generation process manually
-
-```shell
-python generate_course.py {{course-name}}
-```
-
-Afterwards you'll find a ZIP file with all the generated artifacts in `/app/courses/{course}/output/{course}.zip`.

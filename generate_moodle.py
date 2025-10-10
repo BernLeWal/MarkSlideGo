@@ -7,9 +7,6 @@ import time
 import zipfile
 import xml.etree.ElementTree as ET
 
-from tqdm import tqdm
-import yaml
-
 from generate import create_ims_manifest, generate, is_source_newer
 
 
@@ -70,6 +67,8 @@ class MoodleFile(MoodleBase):
 
     next_file_id = 10000
     next_context_id = 15000
+
+    intermediate_dirs = []
 
     def __init__(self, filepath:str, component:str = "mod_resource", context_id:int=0, filearea:str="content"):
         super().__init__()
@@ -164,29 +163,35 @@ class MoodleFile(MoodleBase):
         ns = {'imscp': 'http://www.imsglobal.org/xsd/imscp_v1p1'}
         result = {}
 
-        root = ET.fromstring(xml_string)
-        # /manifest[identifier]
-        result['manifest.identifier'] = root.attrib.get('identifier')
+        try:
 
-        # /manifest/organizations/organization[identifier]
-        org = root.find('imscp:organizations/imscp:organization', ns)
-        result['organization.identifier'] = org.attrib.get('identifier') if org is not None else None
+            root = ET.fromstring(xml_string)
+            # /manifest[identifier]
+            result['manifest.identifier'] = root.attrib.get('identifier')
 
-        # /manifest/organizations/organization/title
-        org_title = org.find('imscp:title', ns) if org is not None else None
-        result['organization.title'] = org_title.text if org_title is not None else None
+            # /manifest/organizations/organization[identifier]
+            org = root.find('imscp:organizations/imscp:organization', ns)
+            result['organization.identifier'] = org.attrib.get('identifier') if org is not None else None
 
-        # /manifest/organizations/organization/item[identifier]
-        item = org.find('imscp:item', ns) if org is not None else None
-        result['item.identifier'] = item.attrib.get('identifier') if item is not None else None
+            # /manifest/organizations/organization/title
+            org_title = org.find('imscp:title', ns) if org is not None else None
+            result['organization.title'] = org_title.text if org_title is not None else None
 
-        # /manifest/organizations/organization/item/title
-        item_title = item.find('imscp:title', ns) if item is not None else None
-        result['item.title'] = item_title.text if item_title is not None else None
+            # /manifest/organizations/organization/item[identifier]
+            item = org.find('imscp:item', ns) if org is not None else None
+            result['item.identifier'] = item.attrib.get('identifier') if item is not None else None
 
-        # /manifest/resources/resource[href]
-        resource = root.find('imscp:resources/imscp:resource', ns)
-        result['resource.href'] = resource.attrib.get('href') if resource is not None else None
+            # /manifest/organizations/organization/item/title
+            item_title = item.find('imscp:title', ns) if item is not None else None
+            result['item.title'] = item_title.text if item_title is not None else None
+
+            # /manifest/resources/resource[href]
+            resource = root.find('imscp:resources/imscp:resource', ns)
+            result['resource.href'] = resource.attrib.get('href') if resource is not None else None
+
+        except ET.ParseError as e:
+            print(f"Error parsing imsmanifest.xml: {e}", file=sys.stderr)
+            print(xml_string, file=sys.stderr)
 
         return result
 
@@ -196,6 +201,7 @@ class MoodleFile(MoodleBase):
         zip_contents_dir = zip_filepath.replace(".zip", "_unzipped")
         with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
             zip_ref.extractall(zip_contents_dir)
+        MoodleFile.intermediate_dirs.append(zip_contents_dir)
 
         context_id = MoodleFile.next_context_id
         MoodleFile.next_context_id += 1
@@ -210,7 +216,18 @@ class MoodleFile(MoodleBase):
                 result.append(moodlefile)
         result.append(MoodleFile(zip_filepath, component, context_id))
         return result
-    
+
+
+    @staticmethod
+    def remove_intermediate_dirs():
+        for intermediate_dir in MoodleFile.intermediate_dirs:
+            if os.path.exists(intermediate_dir):
+                for root, dirs, files in os.walk(intermediate_dir, topdown=False):
+                    for name in files:
+                        os.remove(os.path.join(root, name))
+                    for name in dirs:
+                        os.rmdir(os.path.join(root, name))
+                os.rmdir(intermediate_dir)
 
 
 class MoodleActivity(MoodleBase):
@@ -224,11 +241,11 @@ class MoodleActivity(MoodleBase):
         MoodleActivity.next_activity_id += 1
         self.module_id = MoodleActivity.next_module_id
         MoodleActivity.next_module_id += 1
-        self.title = title
+        self.title = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         self.modulename = modulename
 
         self.files:list[MoodleFile] = []
-        self.section:MoodleSection = None
+        self.section:MoodleSection|None = None
 
 
     def generate_inforef(self) -> None:
@@ -252,8 +269,8 @@ class MoodleActivity(MoodleBase):
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <module id="{self.module_id}" version="2024100700">
   <modulename>{self.modulename}</modulename>
-  <sectionid>{self.section.id}</sectionid>
-  <sectionnumber>{self.section.number}</sectionnumber>
+  <sectionid>{self.section.id if self.section else 0}</sectionid>
+  <sectionnumber>{self.section.number if self.section else 0}</sectionnumber>
   <idnumber>$@NULL@$</idnumber>
   <added>{self.current_timestamp}</added>
   <score>0</score>
@@ -437,8 +454,9 @@ class MoodleSection(MoodleBase):
         super().__init__()
         self.id = MoodleSection.next_section_id
         MoodleSection.next_section_id += 1
-        self.title = title
+        self.title = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         self.number = number
+        self.summary = ""
 
         self.activities:list[MoodleActivity] = [] 
 
@@ -448,7 +466,7 @@ class MoodleSection(MoodleBase):
 <section id="{self.id}">
   <number>{self.number}</number>
   <name>{self.title}</name>
-  <summary>{self.title}</summary>
+  <summary>{self.summary.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')}</summary>
   <summaryformat>1</summaryformat>
   <sequence>728313,1956075,1956077,1956079,1956080,1661072,1661187,678060,728279,728280,1992663</sequence>
   <visible>1</visible>
@@ -495,18 +513,18 @@ class MoodleSection(MoodleBase):
 
 
 class MoodleCourse(MoodleBase):
-    def __init__(self, course_name, course_id):
+    def __init__(self, name, title, course_id):
         super().__init__()
-        self.name = course_name
-        self.shortname = course_name.replace(" ", "-").upper()
+        self.name = name
+        self.title = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         self.id = course_id
 
 
     def generate_course(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <course id="{self.id}" contextid="946563">
-  <shortname>{self.shortname}</shortname>
-  <fullname>{self.name}</fullname>
+  <shortname>{self.name}</shortname>
+  <fullname>{self.title}</fullname>
   <idnumber></idnumber>
   <summary></summary>
   <summaryformat>1</summaryformat>
@@ -716,12 +734,12 @@ class MoodleCourse(MoodleBase):
 
 
 class MoodleBackup(MoodleBase):
-    def __init__(self, course_name, course_id):
+    def __init__(self, course_name, course_title, course_id):
         super().__init__()
-        self.course = MoodleCourse(course_name, course_id)
+        self.course = MoodleCourse(course_name, course_title, course_id)
         self.files:list[MoodleFile] = []
         self.activities:list[MoodleActivity] = []
-        self.sections:list[MoodleSection] = []
+        self.sections:dict[str,MoodleSection] = {}
 
         # generate a SHA1 hash from course name and id
         hash_input = f"{course_name}{course_id}".encode("utf-8")
@@ -821,8 +839,8 @@ class MoodleBackup(MoodleBase):
     <original_site_identifier_hash>6118578f64415b7ca246939bfb24e84a</original_site_identifier_hash>
     <original_course_id>{self.course.id}</original_course_id>
     <original_course_format>scfhtw</original_course_format>
-    <original_course_fullname>{self.course.name}</original_course_fullname>
-    <original_course_shortname>{self.course.shortname}</original_course_shortname>
+    <original_course_fullname>{self.course.title}</original_course_fullname>
+    <original_course_shortname>{self.course.name}</original_course_shortname>
     <original_course_startdate>0</original_course_startdate>
     <original_course_enddate>0</original_course_enddate>
     <original_course_contextid>946563</original_course_contextid>
@@ -844,7 +862,7 @@ class MoodleBackup(MoodleBase):
             for activity in self.activities:
                 file_content += f"""        <activity>
           <moduleid>{activity.module_id}</moduleid>
-          <sectionid>{activity.section.id}</sectionid>
+          <sectionid>{activity.section.id if activity.section else 0}</sectionid>
           <modulename>{activity.modulename}</modulename>
           <title>{activity.title}</title>
           <directory>activities/{activity.modulename}_{activity.module_id}</directory>
@@ -855,7 +873,7 @@ class MoodleBackup(MoodleBase):
 
         if self.sections:
             file_content += "      <sections>\n"
-            for section in self.sections:
+            for section in self.sections.values():
                 file_content += f"""        <section>
           <sectionid>{section.id}</sectionid>
           <title>{section.title}</title>
@@ -868,7 +886,7 @@ class MoodleBackup(MoodleBase):
 
         file_content += f"""      <course>
         <courseid>{self.course.id}</courseid>
-        <title>{self.course.shortname}</title>
+        <title>{self.course.name}</title>
         <directory>course</directory>
       </course>
     </contents>
@@ -980,7 +998,7 @@ class MoodleBackup(MoodleBase):
       </setting>
 """
         if self.sections:
-            for section in self.sections:
+            for section in self.sections.values():
                 file_content += f"""      <setting>
         <level>section</level>
         <section>section_{section.id}</section>
@@ -1018,6 +1036,7 @@ class MoodleBackup(MoodleBase):
 
 
     def generate_mbz(self, mbz_filename:str, removeIntermediateFiles:bool = False, replaceExisting:bool = True) -> None:
+        os.makedirs("output", exist_ok=True)
         os.chdir("output")
         mbz_directory = mbz_filename.replace(".mbz", "")
         if replaceExisting: 
@@ -1056,7 +1075,7 @@ class MoodleBackup(MoodleBase):
         if self.sections:
             os.makedirs("sections", exist_ok=True)
             os.chdir("sections")
-            for section in self.sections:
+            for section in self.sections.values():
                 section.generate()
             os.chdir("..")
 
@@ -1069,221 +1088,226 @@ class MoodleBackup(MoodleBase):
         os.chdir("..")  # leave mbz directory
 
         os.chdir("..")  # leave output directory
+        MoodleFile.remove_intermediate_dirs()
         print(f"Generated {mbz_filename} with {len(self.sections)} sections, {len(self.activities)} activities, and {len(self.files)} files.")
 
 
 # ------------------- Course Generation Function -------------------
-def generate_course_topic(generator:MoodleBackup, section_nr: int, section_data: dict, course_title: str, course_name: str, md_file: str|None = None) -> None:
-    """ Generate a course topic (section) in the MoodleBackup instance. """
-    section_name = section_data['name']
-    section_title = section_data['title']
+def generate_section(generator:MoodleBackup, md_file:str, topic_name:str) -> MoodleSection:
+    topic_info = get_md_info(os.path.join(os.path.dirname(md_file), "README.md"))
+    topic_title = topic_name.replace("-", " ").title()
+    topic_desc = ""
+    if topic_info is not None and 'title' in topic_info:
+        topic_title = topic_info['title']
+        topic_desc = topic_info['description']
 
-    section = MoodleSection(section_title, section_nr+1)
-    generator.sections.append(section)
+    print(f"Generating section {topic_name}: {topic_title}")
+    section = MoodleSection(topic_title, len(generator.sections)+1)
+    section.summary = topic_desc
+    generator.sections[topic_name] = section    
+    return section
 
-    # Extract the slides data
-    slides = section_data['slides']
-    slides_count = len(slides)
 
-    # Iterate through each slide
-    for j in tqdm(range(slides_count), unit="slide", desc=f"Processing slides for {section_name}"):
-        activity_title = slides[j]['title']
+def generate_activity(generator:MoodleBackup, section:MoodleSection, activity_title:str, target_file:str, source_file:str, options):
+    if options is not None and '--scorm' in options:
+        is_scorm = True
+    else:
         is_scorm = False
-        if 'options' in slides[j]:
-            options = slides[j]['options'].split(" ")
-            if '--scorm' in options:
-                is_scorm = True
-        else:
-            options = None
-        activity_modulename = "scorm" if is_scorm else "resource"
-        moodle_activity = MoodleActivity(activity_title, activity_modulename)
-        section.activities.append(moodle_activity)
-        moodle_activity.section = section
-        generator.activities.append(moodle_activity)
+    
+    if is_source_newer(source_file, target_file):
+        course_title = generator.course.title
+        course_name = generator.course.name
+        print(f"Generating material: {source_file} -> {target_file}")
+        if is_scorm:
+            create_ims_manifest(target_file, course_name, course_title, activity_title)
 
-        # Extract the source and target for each slide
-        if slides[j]['target'].endswith('.md'):
-            target_file = "moodle/" + section_name + "/" + slides[j]['target']
-            source_file = target_file
-        else:
-            target_file = "moodle/" + section_name + "/" + slides[j]['target']
-            source_file, _ = os.path.splitext(target_file)
-            source_file += ".md"
+        generate(source_file, target_file, options)
 
-        # Generate the slidedeck
-        if target_file != source_file:
-            if is_source_newer(source_file, target_file):
-                print(f"Processing slide: {slides[j]['source']} -> {source_file} -> {target_file}")
-                if is_scorm:
-                    create_ims_manifest(target_file, course_name, course_title, activity_title)
+    if is_scorm:
+        target_file = target_file.replace(".html", ".zip")
 
-                if md_file is None or md_file == os.path.basename(source_file):
-                    generate(source_file, target_file, options)
-
-            if is_scorm:
-                target_file = target_file.replace(".html", ".zip")
-
-            print(f"Processing file {target_file} scorm={is_scorm}")
-            if is_scorm:
-                scorm_files = MoodleFile.unzip_and_add(target_file)
-                moodle_activity.files.extend(scorm_files)
-                generator.files.extend(scorm_files)
-            else: 
-                moodle_file = MoodleFile(target_file)
-                moodle_activity.files.append(moodle_file)
-                generator.files.append(moodle_file)
+    print(f"Generating activity {target_file} scorm={is_scorm}")
+    moodle_activity = MoodleActivity(activity_title, "scorm" if is_scorm else "resource")
+    if is_scorm:
+        scorm_files = MoodleFile.unzip_and_add(target_file)
+        moodle_activity.files.extend(scorm_files)
+        generator.files.extend(scorm_files)
+    else: 
+        moodle_file = MoodleFile(target_file)
+        moodle_activity.files.append(moodle_file)
+        generator.files.append(moodle_file)
+    section.activities.append(moodle_activity)
+    moodle_activity.section = section
+    generator.activities.append(moodle_activity)
 
 
 
-def generate_course(yaml_file: str, topic: str|None = None, md_file: str|None = None) -> None:
-    """ Generate the .mbz file for a course from a YAML file. """
-    # Load data from YAML file
-    with open(yaml_file, 'r', encoding="utf-8") as file:
-        data = yaml.safe_load(file)
-    topics_count = len(data['topics'])
+def get_md_info(md_file:str) -> dict|None:
+    info = {}
+    if os.path.exists(md_file):
+        try:
+            first_line = ""
+            with open(md_file, 'r', encoding='utf-8') as f:
+                while line := f.readline():
+                    line = line.strip()
+                    if first_line == "" and line:
+                        first_line = line.lstrip("# ").strip()
+                        info['title'] = first_line
+                        info['description'] = ""
+                    elif line.startswith("# "):
+                        return info # next section, stop processing
+                    else: # add to description
+                        info['description'] = info['description'] + line.strip() + "\n"
+        except Exception:
+            pass
+    return info
 
-    course_title = data['course-title']
-    course_name = data['course']
-    generator = MoodleBackup(course_title, 1)
 
-    # Iterate through each topic
-    for topic_nr in tqdm(range(topics_count), unit="topic", desc=f"Processing topics of {yaml_file}"):
-        # Extract the name for each topic
-        data_topic = data['topics'][topic_nr]
-        name = data_topic['name']
 
-        # If a specific topic is provided, skip others
-        if topic is not None and name != topic:
+def get_marp_info(md_file:str) -> dict|None:
+  """Read the top of a markdown file and parse a Marp front-matter block.
+
+  Reads up to 20 lines or until the second '---' marker. If a line
+  'marp: true' is present in the block, returns a dict of parsed
+  key: value pairs. Otherwise returns None.
+  """
+  if not os.path.exists(md_file):
+    return None
+
+  frontmatter = []
+  inside = False
+  max_lines = 20
+  try:
+    with open(md_file, 'r', encoding='utf-8') as f:
+      for i in range(max_lines):
+        line = f.readline()
+        if line == '':
+          break
+        stripped = line.strip()
+        if stripped == '---':
+          if not inside:
+            inside = True
             continue
+          else:
+            # end of frontmatter
+            break
+        if inside:
+          frontmatter.append(stripped)
+  except Exception:
+    return None
 
-        generate_course_topic(generator, topic_nr, data_topic, course_title, course_name, md_file)
+  if not frontmatter:
+    return None
 
-    generator.generate_mbz(os.path.basename(yaml_file).replace(".yml", ".mbz"), removeIntermediateFiles=False)
+  # parse lines as key: value
+  result = {}
+  found_marp_true = False
+  for ln in frontmatter:
+    if not ln or ln.startswith('#'):
+      continue
+    if ':' not in ln:
+      # skip invalid lines
+      continue
+    key, val = ln.split(':', 1)
+    key = key.strip()
+    val = val.strip()
+    # remove surrounding quotes if present
+    if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+      val = val[1:-1]
+    # convert booleans
+    if val.lower() == 'true':
+      parsed_val = True
+    elif val.lower() == 'false':
+      parsed_val = False
+    else:
+      parsed_val = val
+    result[key] = parsed_val
+    if key == 'marp' and parsed_val is True:
+      found_marp_true = True
 
+  if not found_marp_true:
+    return None
 
-# ------------------- Test Scenarios -------------------
-def test_empty():
-    # Scenario 1: generate an empty course backup
-    generator = MoodleBackup("Empty Course", 16200)
-    generator.generate_mbz("backup-moodle2-course-empty.mbz")
+  return result
 
-
-def test_files():
-    # Scenario 2: generate a course backup with file references
-    generator = MoodleBackup("Course with Files", 16201)
-    pdf_file1 = MoodleFile("test/java-kickstart.pdf")
-    generator.files.append(pdf_file1)
-    pdf_file2 = MoodleFile("test/csharp-kickstart.pdf")
-    generator.files.append(pdf_file2)
-
-    pdf_activity1 = MoodleActivity("Java: Programming intro and development tools (PDF)")
-    pdf_activity1.files.append(pdf_file1)
-    generator.activities.append(pdf_activity1)
-    pdf_activity2 = MoodleActivity("C#: Programming intro and development tools (PDF)")
-    pdf_activity2.files.append(pdf_file2)
-    generator.activities.append(pdf_activity2)
-
-
-    pdf_section = MoodleSection("Class 1: Kickstart Programming", 6)
-    pdf_section.activities.append(pdf_activity1)
-    pdf_activity1.section = pdf_section
-    pdf_section.activities.append(pdf_activity2)
-    pdf_activity2.section = pdf_section
-    generator.sections.append(pdf_section)
-
-    generator.generate_mbz("backup-moodle2-course-2pdf.mbz")
-
-
-def test_scorm():
-    # Scenario 3: generate a course backup with a SCORM activity
-    generator = MoodleBackup("Course with SCORM", 16202)
-    scorm_files = MoodleFile.unzip_and_add("test/oop-basics.zip")
-    generator.files.extend(scorm_files)
-
-    scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
-    scorm_activity.files.extend(scorm_files)
-    generator.activities.append(scorm_activity)
-
-    scorm_section = MoodleSection("Self-Study B: Object-Oriented Programming Recap", 7)
-    scorm_section.activities.append(scorm_activity)
-    scorm_activity.section = scorm_section
-    generator.sections.append(scorm_section)
-
-    generator.generate_mbz("backup-moodle2-course-scorm.mbz")
-    generator.remove_dir_recursively("test/oop-basics")
-
-
-def test_all():
-    # Scenario 4: generate a course backup with a SCORM activity and PDF activities
-    generator = MoodleBackup("Course Complete", 16203)
-    scorm_files = MoodleFile.unzip_and_add("test/oop-basics.zip")
-    generator.files.extend(scorm_files)
-    pdf_file1 = MoodleFile("test/java-kickstart.pdf")
-    generator.files.append(pdf_file1)
-    pdf_file2 = MoodleFile("test/csharp-kickstart.pdf")
-    generator.files.append(pdf_file2)
-
-    scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
-    scorm_activity.files.extend(scorm_files)
-    generator.activities.append(scorm_activity)
-    pdf_activity1 = MoodleActivity("Java: Programming intro and development tools (PDF)")
-    pdf_activity1.files.append(pdf_file1)
-    generator.activities.append(pdf_activity1)
-    pdf_activity2 = MoodleActivity("C#: Programming intro and development tools (PDF)")
-    pdf_activity2.files.append(pdf_file2)
-    generator.activities.append(pdf_activity2)
-
-    all_section = MoodleSection("Self-Study B: Object-Oriented Programming Recap", 7)
-    all_section.activities.append(scorm_activity)
-    scorm_activity.section = all_section
-    all_section.activities.append(pdf_activity1)
-    pdf_activity1.section = all_section
-    all_section.activities.append(pdf_activity2)
-    pdf_activity2.section = all_section
-
-    generator.sections.append(all_section)
-
-    generator.generate_mbz("backup-moodle2-course-all.mbz")
-    generator.remove_dir_recursively("test/oop-basics")
 
 # ------------------- Main Program -------------------
 if __name__ == "__main__":
-    #test_empty()
-    #test_files()
-    #test_scorm()
-    #test_all()
-    #sys.exit(0)
-
     # Check if one argument was provided
     if len(sys.argv) < 2:
         script_file = os.path.basename(sys.argv[0])
         print(f"Usage: {script_file} <course> [<topic>] [<md_file>] ")
-        print("Examples (using the courses-repo of fhtw):")
-        print(f"- generate complete course BIF3/SWEN1:  {script_file} fhtw/bif3_swen1")
-        print(f"- generate specific topic SS-A:         {script_file} fhtw/bif3_swen1 SS-A")
-        print(f"- generate specific markdown file:      {script_file} fhtw/bif3_swen1 Class-1 java-kickstart.md")
+        print("Examples (using the courses-repo of bif3-swen1):")
+        print(f"- generate complete course BIF3/SWEN1:  {script_file} bif3-swen1")
+        print(f"- generate specific topic SS-A:         {script_file} bif3-swen1 SS-A")
+        print(f"- generate specific markdown file:      {script_file} bif3-swen1 Class-1 java-kickstart.md")
         sys.exit(0)
 
-    # Path to the YAML file
+    # Path to the course
     course = sys.argv[1]
     course_name = os.path.basename(course)
-    course_path = os.path.join("courses", course, f"{course_name}.yml")
+    course_path = os.path.join("courses", course)
     if not os.path.exists(course_path):
-        print(f"Error: Course file {course_path} does not exist.")
+        print(f"Error: Course {course_path} does not exist.")
+        sys.exit(1)
+    if not os.path.isdir(course_path):
+        print(f"Error: Course {course_path} is not a directory.")
         sys.exit(1)
 
-    topic = None
+    filter_topic_name = None
     if len(sys.argv) > 2:
-        topic = sys.argv[2]
-    if topic == "." or topic == "*" or topic == "":
-        topic = None
+        filter_topic_name = sys.argv[2]
+    if filter_topic_name == "." or filter_topic_name == "*" or filter_topic_name == "":
+        filter_topic_name = None
 
-    md_file = None
+    filter_md_file = None
     if len(sys.argv) > 3:
-        md_file = sys.argv[3]
-    if md_file == "." or md_file == "*" or md_file == "":
-        md_file = None
+        filter_md_file = sys.argv[3]
+    if filter_md_file == "." or filter_md_file == "*" or filter_md_file == "":
+        filter_md_file = None
 
-    # Change into course-directory and generate the course
-    os.chdir(os.path.dirname(course_path))    
-    topics_count = generate_course(os.path.basename(course_path), topic, md_file)
+    # Change into course-directory 
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    course_dir = os.path.dirname(course_path)
+    os.chdir(course_path)
+
+    course_name = os.path.basename(course_path)
+    course_title = course_name.replace("-", " ").title()
+    # if README.md exists, use the first line as course name
+    course_info = get_md_info("README.md")
+    if course_info is not None and 'title' in course_info:
+        course_title = course_info['title']
+    print(f"Generating course '{course_title}' from {course_path}:")
+    generator = MoodleBackup(course_name, course_title, 1)
+
+    # collect all .md files in the course_path recursively
+    for root, dirs, files in os.walk("."):
+        for file in files:
+            if file.endswith(".md"):
+                if filter_md_file is not None and file != filter_md_file:
+                    continue
+
+                md_file = os.path.join(root, file).replace("\\", "/").lstrip("./") 
+                marp_info = get_marp_info(md_file)
+                if marp_info is None:
+                    continue
+                
+                topic_name = os.path.dirname(md_file)
+                if topic_name is None or topic_name == "":
+                    topic_name = os.path.basename(md_file).replace(".md", "")
+                if filter_topic_name is not None and topic_name != filter_topic_name:
+                    continue
+                print(f"- {md_file}: topic_name={topic_name}")
+
+                section = generator.sections[topic_name] if topic_name in generator.sections else None
+                if section is None:
+                    section = generate_section(generator, md_file, topic_name)
+
+                activity_title = marp_info['title'] if 'title' in marp_info else os.path.basename(md_file).replace(".md", "").replace("-", " ").title()
+                generate_activity(generator, section, activity_title, md_file.replace(".md", ".html"), md_file, "--scorm")
+                generate_activity(generator, section, activity_title + " (PDF)", md_file.replace(".md", ".pdf"), md_file, None)
+
+
+
+    # Generate the moodle backup .mbz file
+    generator.generate_mbz(course_name + ".mbz", removeIntermediateFiles=False, replaceExisting=True)

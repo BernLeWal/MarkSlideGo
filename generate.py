@@ -66,6 +66,9 @@ def create_ims_manifest(target_file: str, course: str, course_title: str, title:
     zip_file += ".zip"
     manifest_file, _ = os.path.splitext(target_file)
     manifest_file += ".xml"
+    course_title = course_title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    title = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    logger.info("Creating SCORM manifest: %s ...", manifest_file)
     content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <manifest identifier="{course}Manifest" xmlns="http://www.imsglobal.org/xsd/imscp_v1p1">
   <organizations default="{course}">
@@ -183,8 +186,9 @@ def generate(source: str, target: str, options: list|None = None) -> bool:
         "--pdf-outlines", "--pdf-outlines.pages=false",
         "--pdf-notes", "--allow-local-files", source, "-o", target], check=True)
 
-        if options and "--zip" in options:
-            create_zip_archive(target)
+        if options:
+            if "--zip" in options or "--scorm" in options:
+                create_zip_archive(target)
     else:
         logger.warning("Source file %s not found or is not readable", source)
         return False

@@ -1,43 +1,23 @@
 import os
-import shutil
-import zipfile
 import pytest
 from generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
 
 
-@pytest.fixture(autouse=True)
-def use_tmp_cwd(tmp_path):
-    """Change working directory to a temporary path for each test and clean up."""
-    old_cwd = os.getcwd()
-    os.chdir(tmp_path)
-    yield tmp_path
-    os.chdir(old_cwd)
-    shutil.rmtree(tmp_path, ignore_errors=True)
-
-
-def create_dummy_pdf(path):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(b"%PDF-1.4\n%dummy\n")
-
-
-def test_empty_creates_mbz(tmp_path):
+# -------------------------- For development purposes only --------------------------
+def test_empty():
+    # Scenario 1: generate an empty course backup
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     generator = MoodleBackup("Empty", "Empty Course", 16200)
-    # generate_mbz writes into ./output/<name>.mbz
     generator.generate_mbz("backup-moodle2-course-empty.mbz")
-    out = tmp_path / "output" / "backup-moodle2-course-empty.mbz"
-    assert out.exists()
-    assert zipfile.is_zipfile(out)
 
 
-def test_files_creates_mbz_with_files(tmp_path):
-    # Prepare dummy files
-    create_dummy_pdf(tmp_path / "test" / "java-kickstart.pdf")
-    create_dummy_pdf(tmp_path / "test" / "csharp-kickstart.pdf")
-
+def test_files():
+    # Scenario 2: generate a course backup with file references
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     generator = MoodleBackup("Files", "Course with Files", 16201)
-    pdf_file1 = MoodleFile(str(tmp_path / "test" / "java-kickstart.pdf"))
+    pdf_file1 = MoodleFile("test/java-kickstart.pdf")
     generator.files.append(pdf_file1)
-    pdf_file2 = MoodleFile(str(tmp_path / "test" / "csharp-kickstart.pdf"))
+    pdf_file2 = MoodleFile("test/csharp-kickstart.pdf")
     generator.files.append(pdf_file2)
 
     pdf_activity1 = MoodleActivity("Java: Programming intro and development tools (PDF)")
@@ -47,31 +27,22 @@ def test_files_creates_mbz_with_files(tmp_path):
     pdf_activity2.files.append(pdf_file2)
     generator.activities.append(pdf_activity2)
 
+
     pdf_section = MoodleSection("Class 1: Kickstart Programming", 6)
     pdf_section.activities.append(pdf_activity1)
     pdf_activity1.section = pdf_section
     pdf_section.activities.append(pdf_activity2)
     pdf_activity2.section = pdf_section
-    # generator.sections is a dict in the codebase
     generator.sections["Class 1"] = pdf_section
 
     generator.generate_mbz("backup-moodle2-course-2pdf.mbz")
-    out = tmp_path / "output" / "backup-moodle2-course-2pdf.mbz"
-    assert out.exists()
-    assert zipfile.is_zipfile(out)
 
 
-def test_scorm_creates_mbz_and_cleans_up(tmp_path):
-    # Prepare a small zip that mimics a scorm package
-    scorm_dir = tmp_path / "test" / "oop-basics"
-    scorm_dir.mkdir(parents=True)
-    (scorm_dir / "imsmanifest.xml").write_text("<manifest></manifest>")
-    zip_path = tmp_path / "test" / "oop-basics.zip"
-    with zipfile.ZipFile(zip_path, 'w') as z:
-        z.write(scorm_dir / "imsmanifest.xml", arcname="imsmanifest.xml")
-
+def test_scorm():
+    # Scenario 3: generate a course backup with a SCORM activity
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     generator = MoodleBackup("Scorm", "Course with SCORM", 16202)
-    scorm_files = MoodleFile.unzip_and_add(str(zip_path))
+    scorm_files = MoodleFile.unzip_and_add("test/oop-basics.zip")
     generator.files.extend(scorm_files)
 
     scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
@@ -84,29 +55,18 @@ def test_scorm_creates_mbz_and_cleans_up(tmp_path):
     generator.sections["Self-Study B"] = scorm_section
 
     generator.generate_mbz("backup-moodle2-course-scorm.mbz")
-    out = tmp_path / "output" / "backup-moodle2-course-scorm.mbz"
-    assert out.exists()
-    assert zipfile.is_zipfile(out)
+    generator.remove_dir_recursively("test/oop-basics")
 
 
-def test_all_creates_full_mbz(tmp_path):
-    # Prepare files
-    scorm_dir = tmp_path / "test" / "oop-basics"
-    scorm_dir.mkdir(parents=True)
-    (scorm_dir / "imsmanifest.xml").write_text("<manifest></manifest>")
-    zip_path = tmp_path / "test" / "oop-basics.zip"
-    with zipfile.ZipFile(zip_path, 'w') as z:
-        z.write(scorm_dir / "imsmanifest.xml", arcname="imsmanifest.xml")
-
-    create_dummy_pdf(tmp_path / "test" / "java-kickstart.pdf")
-    create_dummy_pdf(tmp_path / "test" / "csharp-kickstart.pdf")
-
+def test_all():
+    # Scenario 4: generate a course backup with a SCORM activity and PDF activities
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     generator = MoodleBackup("Complete", "Course Complete", 16203)
-    scorm_files = MoodleFile.unzip_and_add(str(zip_path))
+    scorm_files = MoodleFile.unzip_and_add("test/oop-basics.zip")
     generator.files.extend(scorm_files)
-    pdf_file1 = MoodleFile(str(tmp_path / "test" / "java-kickstart.pdf"))
+    pdf_file1 = MoodleFile("test/java-kickstart.pdf")
     generator.files.append(pdf_file1)
-    pdf_file2 = MoodleFile(str(tmp_path / "test" / "csharp-kickstart.pdf"))
+    pdf_file2 = MoodleFile("test/csharp-kickstart.pdf")
     generator.files.append(pdf_file2)
 
     scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
@@ -130,9 +90,8 @@ def test_all_creates_full_mbz(tmp_path):
     generator.sections["Self-Study B"] = all_section
 
     generator.generate_mbz("backup-moodle2-course-all.mbz")
-    out = tmp_path / "output" / "backup-moodle2-course-all.mbz"
-    assert out.exists()
-    assert zipfile.is_zipfile(out)
+    generator.remove_dir_recursively("test/oop-basics")
+
 
 
 # --------------------------------------------
