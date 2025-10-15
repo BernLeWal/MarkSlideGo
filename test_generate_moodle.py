@@ -40,14 +40,14 @@ def test_files_creates_mbz_with_files(tmp_path):
     pdf_file2 = MoodleFile(str(tmp_path / "test" / "csharp-kickstart.pdf"))
     generator.files.append(pdf_file2)
 
-    pdf_activity1 = MoodleActivity("Java: Programming intro and development tools (PDF)")
+    pdf_activity1 = MoodleActivity("java-kickstart", "Java: Programming intro and development tools (PDF)")
     pdf_activity1.files.append(pdf_file1)
     generator.activities.append(pdf_activity1)
-    pdf_activity2 = MoodleActivity("C#: Programming intro and development tools (PDF)")
+    pdf_activity2 = MoodleActivity("csharp-kickstart", "C#: Programming intro and development tools (PDF)")
     pdf_activity2.files.append(pdf_file2)
     generator.activities.append(pdf_activity2)
 
-    pdf_section = MoodleSection("Class 1: Kickstart Programming", 6)
+    pdf_section = MoodleSection("Class-1","Class 1: Kickstart Programming", 6)
     pdf_section.activities.append(pdf_activity1)
     pdf_activity1.section = pdf_section
     pdf_section.activities.append(pdf_activity2)
@@ -74,11 +74,11 @@ def test_scorm_creates_mbz_and_cleans_up(tmp_path):
     scorm_files = MoodleFile.unzip_and_add(str(zip_path))
     generator.files.extend(scorm_files)
 
-    scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
+    scorm_activity = MoodleActivity("oop-basics", "Basics of Object-Oriented Programming", "scorm")
     scorm_activity.files.extend(scorm_files)
     generator.activities.append(scorm_activity)
 
-    scorm_section = MoodleSection("Self-Study B: Object-Oriented Programming Recap", 7)
+    scorm_section = MoodleSection("SS-B", "Self-Study B: Object-Oriented Programming Recap", 7)
     scorm_section.activities.append(scorm_activity)
     scorm_activity.section = scorm_section
     generator.sections["Self-Study B"] = scorm_section
@@ -109,17 +109,17 @@ def test_all_creates_full_mbz(tmp_path):
     pdf_file2 = MoodleFile(str(tmp_path / "test" / "csharp-kickstart.pdf"))
     generator.files.append(pdf_file2)
 
-    scorm_activity = MoodleActivity("Basics of Object-Oriented Programming", "scorm")
+    scorm_activity = MoodleActivity("oop-basics", "Basics of Object-Oriented Programming", "scorm")
     scorm_activity.files.extend(scorm_files)
     generator.activities.append(scorm_activity)
-    pdf_activity1 = MoodleActivity("Java: Programming intro and development tools (PDF)")
+    pdf_activity1 = MoodleActivity("java-kickstart", "Java: Programming intro and development tools (PDF)")
     pdf_activity1.files.append(pdf_file1)
     generator.activities.append(pdf_activity1)
-    pdf_activity2 = MoodleActivity("C#: Programming intro and development tools (PDF)")
+    pdf_activity2 = MoodleActivity("csharp-kickstart", "C#: Programming intro and development tools (PDF)")
     pdf_activity2.files.append(pdf_file2)
     generator.activities.append(pdf_activity2)
 
-    all_section = MoodleSection("Self-Study B: Object-Oriented Programming Recap", 7)
+    all_section = MoodleSection("SS-B", "Self-Study B: Object-Oriented Programming Recap", 7)
     all_section.activities.append(scorm_activity)
     scorm_activity.section = all_section
     all_section.activities.append(pdf_activity1)
