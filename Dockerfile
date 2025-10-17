@@ -6,10 +6,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Google Chrome
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
-    && apt-get update \
-    && apt-get install -y ./google-chrome-stable_current_amd64.deb \
-    && rm google-chrome-stable_current_amd64.deb
+ENV CHROME_DEB_URL=https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+RUN wget -O /tmp/chrome.deb "$CHROME_DEB_URL" \
+ && apt-get update \
+ && apt-get install -y /tmp/chrome.deb \
+ && rm -f /tmp/chrome.deb
+
 
 # Create a non-root user 
 RUN useradd -ms /bin/bash msgo

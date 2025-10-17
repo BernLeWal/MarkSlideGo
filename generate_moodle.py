@@ -216,6 +216,9 @@ class MoodleFile(MoodleBase):
     @staticmethod
     def unzip_and_add(zip_filepath:str, component:str="mod_scorm") -> list:
         zip_contents_dir = zip_filepath.replace(".zip", "_unzipped")
+        if not os.path.exists(zip_filepath):
+            print(f"Error: Zip file {zip_filepath} does not exist.", file=sys.stderr)
+            return []
         with zipfile.ZipFile(zip_filepath, 'r') as zip_ref:
             zip_ref.extractall(zip_contents_dir)
         MoodleFile.intermediate_dirs.append(zip_contents_dir)
