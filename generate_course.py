@@ -220,14 +220,14 @@ def generate_course_topic(name, data_topic, course_title, data_course, placehold
             os.makedirs(f"output/{name}", exist_ok=True)
 
             if 'source' in slides[j]:
-                source_file = "../../../catalogs/" + slides[j]['source']
+                source_file = "../../catalogs/" + slides[j]['source']
                 if is_source_newer(source_file, intermediate_file):
                     preprocess(source_file, intermediate_file, placeholders)
 
             if 'sources' in slides[j]:
                 source_files = []
                 for source in slides[j]['sources']:
-                    source_files.append("../../../catalogs/" + source)
+                    source_files.append("../../catalogs/" + source)
                 if is_any_source_newer(source_files, intermediate_file):
                     preprocess_multiple(source_files, intermediate_file, placeholders)
 
@@ -339,9 +339,9 @@ if __name__ == "__main__":
         script_file = os.path.basename(sys.argv[0])
         print(f"Usage: {script_file} <course> [<topic>] [<md_file>] ")
         print("Examples (using the courses-repo of fhtw):")
-        print(f"- generate complete course BIF3/SWEN1:  {script_file} fhtw/bif3_swen1")
-        print(f"- generate specific topic SS-A:         {script_file} fhtw/bif3_swen1 SS-A")
-        print(f"- generate specific markdown file:      {script_file} fhtw/bif3_swen1 Class-1 java-kickstart.md")
+        print(f"- generate complete course BIF3/SWEN1:  {script_file} bif3-swen1")
+        print(f"- generate specific topic SS-A:         {script_file} bif3-swen1 SS-A")
+        print(f"- generate specific markdown file:      {script_file} bif3-swen1 Class-1 java-kickstart.md")
         sys.exit(0)
 
     # Path to the YAML file
