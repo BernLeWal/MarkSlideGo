@@ -7,7 +7,10 @@ from pathlib import Path
 
 # Ensure repository root is on sys.path so tests can import the package
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from markslidego.generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
+from markslidego.moodle.section import MoodleSection
+from markslidego.moodle.activity import MoodleActivity
+from markslidego.moodle.file import MoodleFile
+from markslidego.moodle.backup import MoodleBackup
 
 
 @pytest.fixture(autouse=True)
