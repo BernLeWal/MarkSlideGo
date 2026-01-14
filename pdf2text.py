@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # take environment variables from .env.
 # Set the path to the installed tesseract OCR
-pytesseract.pytesseract.Py = os.environ.get('TESSERACT_CMD', '')
+pytesseract.pytesseract.Py = os.environ.get('TESSERACT_CMD', 'tesseract')
 if not os.path.exists(pytesseract.pytesseract.Py):
     print(f"Error: Tesseract not found at {pytesseract.pytesseract.Py}")
     print("Please install Tesseract OCR and set the TESSERACT_CMD environment variable "
@@ -52,7 +52,7 @@ def pdf_to_text(file_path :str, text_path :str) ->None:
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python {sys.argv[0]} <pdf_file_path> [<text_file_path>]")
+        print(f"Usage: python {sys.argv[0]} <pdf_file_path> [<text_file_path>]")
         sys.exit(1)
 
     source = sys.argv[1]
