@@ -1,6 +1,6 @@
 import os
 import pytest
-from generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
+from markslidego.generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
 
 
 # -------------------------- For development purposes only --------------------------

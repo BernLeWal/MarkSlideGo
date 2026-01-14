@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 import yaml
 import zipfile
 from tqdm.autonotebook import tqdm
-from generate import copy_file_with_assets, create_ims_manifest, generate, is_source_newer, is_any_source_newer
-from generate_questions import generate_questions
+from markslidego.generate import copy_file_with_assets, create_ims_manifest, generate, is_source_newer, is_any_source_newer
+from markslidego.generate_questions import generate_questions
 
 
 load_dotenv()  # take environment variables from .env.

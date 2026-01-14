@@ -4,7 +4,7 @@ import os
 import sys
 import fnmatch
 from tqdm.autonotebook import tqdm
-from generate import generate
+from markslidego.generate import generate
 
 
 print(f"Usage: {sys.argv[0]} [pdf|pptx|html] [--zip]")

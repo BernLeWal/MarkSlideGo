@@ -38,6 +38,7 @@ USER msgo
 WORKDIR /app
 # Copy only top-level files, not subdirectories
 COPY *.py *.sh requirements.txt package.json README.md LICENSE /app/
+COPY markslidego /app/markslidego
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt

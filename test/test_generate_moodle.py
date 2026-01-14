@@ -2,7 +2,12 @@ import os
 import shutil
 import zipfile
 import pytest
-from generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
+import sys
+from pathlib import Path
+
+# Ensure repository root is on sys.path so tests can import the package
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from markslidego.generate_moodle import MoodleBackup, MoodleFile, MoodleActivity, MoodleSection
 
 
 @pytest.fixture(autouse=True)

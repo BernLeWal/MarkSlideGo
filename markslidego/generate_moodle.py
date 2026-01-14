@@ -7,7 +7,7 @@ import time
 import zipfile
 import xml.etree.ElementTree as ET
 
-from generate import create_ims_manifest, generate, is_source_newer
+from markslidego.generate import create_ims_manifest, generate, is_source_newer
 
 
 class MoodleBase:
