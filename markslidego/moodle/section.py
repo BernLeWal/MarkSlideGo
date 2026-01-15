@@ -1,7 +1,10 @@
-from markslidego.moodle.base import MoodleBase
-
-
+"""
+Moodle section representation for Moodle backup structure.
+Provides methods to generate XML entries for Moodle sections in the backup.
+"""
 import os
+from typing import override
+from markslidego.moodle.base import MoodleBase
 
 
 class MoodleSection(MoodleBase):
@@ -20,7 +23,7 @@ class MoodleSection(MoodleBase):
         self.activities = []
 
 
-    def generate_section(self) -> None:
+    def __generate_section__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <section id="{self.id}">
   <number>{self.number}</number>
@@ -59,11 +62,12 @@ class MoodleSection(MoodleBase):
             f.write(file_content)
 
 
+    @override
     def generate(self) -> None:
         os.makedirs(f"section_{self.id}", exist_ok=True)
         os.chdir(f"section_{self.id}")
 
-        self.generate_empty("inforef.xml", "inforef")
-        self.generate_section()
+        self._generate_empty_("inforef.xml", "inforef")
+        self.__generate_section__()
 
         os.chdir("..")

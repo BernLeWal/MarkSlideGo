@@ -1,7 +1,10 @@
-from markslidego.moodle.base import MoodleBase
-
-
+"""
+Moodle course representation for Moodle backup structure.
+Provides methods to generate XML entries for Moodle courses in the backup.
+"""
 import os
+from typing import override
+from markslidego.moodle.base import MoodleBase
 
 
 class MoodleCourse(MoodleBase):
@@ -12,7 +15,7 @@ class MoodleCourse(MoodleBase):
         self.id = course_id
 
 
-    def generate_course(self) -> None:
+    def __generate_course__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <course id="{self.id}" contextid="946563">
   <shortname>{self.name}</shortname>
@@ -149,7 +152,7 @@ class MoodleCourse(MoodleBase):
             f.write(file_content)
 
 
-    def generate_enrolments(self) -> None:
+    def __generate_enrolments__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <enrolments>
   <enrols>
@@ -196,7 +199,7 @@ class MoodleCourse(MoodleBase):
             f.write(file_content)
 
 
-    def generate_inforef(self) -> None:
+    def __generate_inforef__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <inforef>
   <roleref>
@@ -210,14 +213,15 @@ class MoodleCourse(MoodleBase):
             f.write(file_content)
 
 
+    @override
     def generate(self) -> None:
         os.makedirs("course", exist_ok=True)
         os.chdir("course")
 
-        self.generate_empty("completiondefaults.xml", "course_completion_defaults")
-        self.generate_course()
-        self.generate_enrolments()
-        self.generate_inforef()
-        self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
+        self._generate_empty_("completiondefaults.xml", "course_completion_defaults")
+        self.__generate_course__()
+        self.__generate_enrolments__()
+        self.__generate_inforef__()
+        self._generate_empty_("roles.xml", "roles", ["role_overrides", "role_assignments"])
 
         os.chdir("..")  # leave course directory

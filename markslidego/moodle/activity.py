@@ -1,9 +1,11 @@
+"""
+Moodle activity representation for Moodle backup structure.
+Provides methods to generate XML entries for Moodle activities in the backup.
+"""
+import os
+from typing import override
 from markslidego.moodle.base import MoodleBase
 from markslidego.moodle.file import MoodleFile
-
-
-import os
-
 from markslidego.moodle.section import MoodleSection
 
 
@@ -26,7 +28,7 @@ class MoodleActivity(MoodleBase):
         self.section: MoodleSection | None = None
 
 
-    def generate_inforef(self) -> None:
+    def __generate_inforef__(self) -> None:
         file_content = """<?xml version="1.0" encoding="UTF-8"?>
 <inforef>
   <fileref>
@@ -43,7 +45,7 @@ class MoodleActivity(MoodleBase):
             f.write(file_content)
 
 
-    def generate_module(self) -> None:
+    def __generate_module__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <module id="{self.module_id}" version="2024100700">
   <modulename>{self.modulename}</modulename>
@@ -79,7 +81,7 @@ class MoodleActivity(MoodleBase):
             f.write(file_content)
 
 
-    def generate_resource(self) -> None:
+    def __generate_resource__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <activity id="{self.id}" moduleid="{self.module_id}" modulename="resource" contextid="{self.files[0].context_id if self.files else 0}">
   <resource id="{self.id}">
@@ -101,7 +103,7 @@ class MoodleActivity(MoodleBase):
             f.write(file_content)
 
 
-    def generate_scorm(self) -> None:
+    def __generate_scorm__(self) -> None:
         # find the imsmanifest.xml file in self.files
         imsmanifest_file = next((f for f in self.files if f.filename == "imsmanifest.xml"), None)
         scormzip_file = self.files[-1] if self.files else None
@@ -205,18 +207,19 @@ class MoodleActivity(MoodleBase):
             f.write(file_content)
 
 
+    @override
     def generate(self) -> None:
         os.makedirs(f"{self.modulename}_{self.module_id}", exist_ok=True)
         os.chdir(f"{self.modulename}_{self.module_id}")
 
-        self.generate_empty("grade_history.xml", "grade_history", "grade_grades")
-        self.generate_empty("grades.xml", "activity_gradebook", ["grade_items", "grade_letters"])
-        self.generate_inforef()
-        self.generate_module()
+        self._generate_empty_("grade_history.xml", "grade_history", "grade_grades")
+        self._generate_empty_("grades.xml", "activity_gradebook", ["grade_items", "grade_letters"])
+        self.__generate_inforef__()
+        self.__generate_module__()
         if self.modulename == "resource":
-            self.generate_resource()
+            self.__generate_resource__()
         elif self.modulename == "scorm":
-            self.generate_scorm()
-        self.generate_empty("roles.xml", "roles", ["role_overrides", "role_assignments"])
+            self.__generate_scorm__()
+        self._generate_empty_("roles.xml", "roles", ["role_overrides", "role_assignments"])
 
         os.chdir("..")  # leave activity directory

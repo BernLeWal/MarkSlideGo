@@ -1,3 +1,12 @@
+"""
+Moodle backup representation for Moodle backup structure.
+Provides methods to generate the complete Moodle backup structure including files, activities, sections, and course information
+"""
+
+import hashlib
+import os
+from typing import override
+from markslidego.file_utils import remove_dir_recursively, remove_file_if_exists, zip_current_directory
 from markslidego.generate import create_ims_manifest, generate, is_source_newer
 from markslidego.moodle.base import MoodleBase
 from markslidego.moodle.file import MoodleFile
@@ -6,9 +15,6 @@ from markslidego.moodle.course import MoodleCourse
 from markslidego.moodle.section import MoodleSection
 from markslidego.markdown_utils import get_md_info
 
-import hashlib
-import os
-import zipfile
 
 
 class MoodleBackup(MoodleBase):
@@ -18,24 +24,14 @@ class MoodleBackup(MoodleBase):
         self.files:list[MoodleFile] = []
         self.activities:list[MoodleActivity] = []
         self.sections:dict[str,MoodleSection] = {}
+        self.filename:str = ""
 
         # generate a SHA1 hash from course name and id
         hash_input = f"{course_name}{course_id}".encode("utf-8")
         self.backup_hash = hashlib.sha1(hash_input).hexdigest()
 
 
-    def zip_current_directory(self, extension:str = ".zip") -> None:
-        archive_filename = os.path.basename(os.getcwd()) + extension
-        zip_path = os.path.join("..", archive_filename)
-        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for root, dirs, files in os.walk("."):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, ".")
-                    zipf.write(file_path, arcname)
-
-
-    def generate_files(self) -> None:
+    def __generate_files__(self) -> None:
         file_content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         file_content += "<files>\n"
         for f in self.files:
@@ -68,7 +64,7 @@ class MoodleBackup(MoodleBase):
 
 
 
-    def generate_groups(self) -> None:
+    def __generate_groups__(self) -> None:
         file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <groups>
   <groupcustomfields>
@@ -83,7 +79,7 @@ class MoodleBackup(MoodleBase):
             f.write(file_content)
 
 
-    def generate_roles(self) -> None:
+    def __generate_roles__(self) -> None:
         file_content = """<?xml version="1.0" encoding="UTF-8"?>
 <roles_definition>
   <role id=\"""" + self.ROLE_ID + """\">
@@ -100,11 +96,12 @@ class MoodleBackup(MoodleBase):
             f.write(file_content)
 
 
-    def generate_moodle_backup(self, mbz_filename:str) -> None:
+    @override
+    def generate(self) -> None:
         file_content =  f"""<?xml version="1.0" encoding="UTF-8"?>
 <moodle_backup>
   <information>
-    <name>{mbz_filename}</name>
+    <name>{self.filename}</name>
     <moodle_version>{self.MOODLE_VERSION}</moodle_version>
     <moodle_release>{self.MOODLE_RELEASE}</moodle_release>
     <backup_version>{self.BACKUP_VERSION}</backup_version>
@@ -172,7 +169,7 @@ class MoodleBackup(MoodleBase):
       <setting>
         <level>root</level>
         <name>filename</name>
-        <value>{mbz_filename}</value>
+        <value>{self.filename}</value>
       </setting>
       <setting>
         <level>root</level>
@@ -314,6 +311,7 @@ class MoodleBackup(MoodleBase):
 
 
     def create_section(self, md_file:str, topic_name:str) -> MoodleSection:
+        """ Factory method to create a MoodleSection and add it to the backup """
         topic_info = get_md_info(os.path.join(os.path.dirname(md_file), "README.md"))
         topic_title = topic_name.replace("-", " ").title()
         topic_desc = ""
@@ -329,6 +327,7 @@ class MoodleBackup(MoodleBase):
 
 
     def create_activity(self, section:MoodleSection, activity_title:str, target_file:str, source_file:str, options):
+        """ Factory method to create a MoodleActivity and add it to the backup """
         if options is not None and '--scorm' in options:
             is_scorm = True
         else:
@@ -367,17 +366,17 @@ class MoodleBackup(MoodleBase):
         os.chdir("output")
         mbz_directory = mbz_filename.replace(".mbz", "")
         if replaceExisting:
-            self.remove_dir_recursively(mbz_directory)
-            self.remove_file_if_exists(mbz_filename)
+            remove_dir_recursively(mbz_directory)
+            remove_file_if_exists(mbz_filename)
         os.makedirs(mbz_directory, exist_ok=not replaceExisting)
         os.chdir(mbz_directory)
 
-        self.generate_files()
-        self.generate_groups()
-        self.generate_empty("outcomes.xml", "outcomes_definition")
-        self.generate_empty("questions.xml", "question_categories")
-        self.generate_roles()
-        self.generate_empty("scales.xml", "scales_definition")
+        self.__generate_files__()
+        self.__generate_groups__()
+        self._generate_empty_("outcomes.xml", "outcomes_definition")
+        self._generate_empty_("questions.xml", "question_categories")
+        self.__generate_roles__()
+        self._generate_empty_("scales.xml", "scales_definition")
 
         # ----- /activities -----
         if self.activities:
@@ -407,11 +406,12 @@ class MoodleBackup(MoodleBase):
             os.chdir("..")
 
         # -------------------
-        self.generate_moodle_backup(mbz_filename)
+        self.filename = mbz_filename
+        self.generate()
 
-        self.zip_current_directory(".mbz")
+        zip_current_directory(".mbz")
         if removeIntermediateFiles and os.path.exists(mbz_directory):
-            self.remove_dir_recursively(mbz_directory)
+            remove_dir_recursively(mbz_directory)
         os.chdir("..")  # leave mbz directory
 
         os.chdir("..")  # leave output directory
@@ -424,8 +424,8 @@ class MoodleBackup(MoodleBase):
         os.chdir("output")
         zip_directory = zip_filename.replace(".zip", "")
         if replaceExisting:
-            self.remove_dir_recursively(zip_directory)
-            self.remove_file_if_exists(zip_filename)
+            remove_dir_recursively(zip_directory)
+            remove_file_if_exists(zip_filename)
         os.makedirs(zip_directory, exist_ok=not replaceExisting)
         os.chdir(zip_directory)
         filecount = 0
@@ -442,9 +442,9 @@ class MoodleBackup(MoodleBase):
                             if f.copy_file_to(f"{section.name}/{activity.name}"):
                                 filecount += 1
 
-        self.zip_current_directory()
+        zip_current_directory()
         if removeIntermediateFiles and os.path.exists(zip_directory):
-            self.remove_dir_recursively(zip_directory)
+            remove_dir_recursively(zip_directory)
         os.chdir("..")  # leave zip directory
 
         os.chdir("..")  # leave output directory

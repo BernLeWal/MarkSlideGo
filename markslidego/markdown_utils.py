@@ -1,4 +1,7 @@
-# ------------------- Course Generation Function -------------------
+"""
+Utility functions for markdown file operations.
+"""
+
 import os
 
 

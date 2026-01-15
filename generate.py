@@ -38,19 +38,19 @@ def main(argv: list[str] | None = None) -> int:
     name = argv[1]
     module_name = f"markslidego.generate_{name}"
 
-    # Check module availability
-    try:
-        importlib.import_module(module_name)
-    except Exception as exc:  # avoid failing on import-time errors in target module
-        # If module file doesn't exist, show available targets.
-        targets = available_targets()
-        if targets and f"{name}" not in targets:
-            print(f"Module for '{name}' not found.")
-            print("Available targets:", ", ".join(targets))
-            return 1
-        # If module exists but import raised, surface the error
-        print(f"Error importing {module_name}: {exc}", file=sys.stderr)
-        return 1
+#    # Check module availability
+#    try:
+#        importlib.import_module(module_name)
+#    except Exception as exc:  # avoid failing on import-time errors in target module
+#        # If module file doesn't exist, show available targets.
+#        targets = available_targets()
+#        if targets and f"{name}" not in targets:
+#            print(f"Module for '{name}' not found.")
+#            print("Available targets:", ", ".join(targets))
+#            return 1
+#        # If module exists but import raised, surface the error
+#        print(f"Error importing {module_name}: {exc}", file=sys.stderr)
+#        return 1
 
     # Set argv for the target module: argv[0] will be module name for clarity
     sys.argv = [module_name] + argv[2:]

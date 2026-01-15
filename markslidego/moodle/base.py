@@ -1,8 +1,12 @@
-import os
+"""
+Moodle base class representing an (abstract) entity in Moodle backup structure
+Provides methods to generate XML files for the Moodle backup
+"""
 import time
+from abc import ABC, abstractmethod
 
 
-class MoodleBase:
+class MoodleBase(ABC):
     def __init__(self):
         self.MOODLE_VERSION = "2024100705"
         self.MOODLE_RELEASE = "4.5.5 (Build: 20250609)"
@@ -15,7 +19,7 @@ class MoodleBase:
         self.current_timestamp = int(time.time())
 
 
-    def generate_empty(self, filename, rootElemName, childElemName = None) -> None:
+    def _generate_empty_(self, filename, rootElemName, childElemName = None) -> None:
         file_content = f"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         if rootElemName:
             file_content += f"<{rootElemName}>\n"
@@ -34,19 +38,7 @@ class MoodleBase:
         with open(filename, "w", encoding="utf-8") as f:
             f.write(file_content)
 
+    @abstractmethod
+    def generate(self) -> None:
+        raise NotImplementedError()
 
-    def remove_dir_recursively(self, path:str) -> None:
-        """ Remove a directory and all its contents recursively """
-        if os.path.exists(path):
-            for root, dirs, files in os.walk(path, topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir(path)
-
-
-    def remove_file_if_exists(self, filepath:str) -> None:
-        """ Remove a file if it exists """
-        if os.path.exists(filepath):
-            os.remove(filepath)

@@ -1,11 +1,15 @@
-from markslidego.moodle.base import MoodleBase
-
-
+""" 
+Moodle file representation for Moodle backup structure.
+Provides methods to generate XML entries and handle file content for Moodle backup
+"""
 import hashlib
 import os
 import xml.etree.ElementTree as ET
 import zipfile
 import sys
+from markslidego.moodle.base import MoodleBase
+from typing import override
+
 
 
 class MoodleFile(MoodleBase):
@@ -53,7 +57,8 @@ class MoodleFile(MoodleBase):
             self.content_dict = self.parse_imsmanifest(xml_string)
 
 
-    def get_mime_type(self, filepath:str) -> str:
+    @staticmethod
+    def get_mime_type(filepath:str) -> str:
         # very basic mime type detection based on file extension
         ext = os.path.splitext(filepath)[1].lower()
         if ext == ".pdf":
@@ -88,6 +93,7 @@ class MoodleFile(MoodleBase):
             return "application/octet-stream"  # default binary type
 
 
+    @override
     def generate(self) -> None:
         files_subdir = self.content_hash[0:2]
         os.makedirs(f"{files_subdir}", exist_ok=True)
@@ -121,7 +127,8 @@ class MoodleFile(MoodleBase):
         return False
 
 
-    def parse_imsmanifest(self, xml_string:str) -> dict:
+    @staticmethod
+    def parse_imsmanifest(xml_string:str) -> dict:
         ns = {'imscp': 'http://www.imsglobal.org/xsd/imscp_v1p1'}
         result = {}
 
