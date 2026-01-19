@@ -69,17 +69,19 @@ Use the following scripts to generate the slide-decks in various formats:
 
 You need to create a folder for your course under the [courses/](./courses/) directory - or just git clone your course-repos into it.
 
-Usage: `python generate_moodle.py <course> [<topic>] [<md_file>]`
+Usage: `python generate.py moodle <course> [<topic>] [<md_file>]`
 
 Examples (using the courses-repo of bif3-swen1):
-- generate complete course BIF3/SWEN1:  `python generate_moodle.py bif3-swen1`
-- generate specific topic SS-A only:    `generate_moodle.py bif3-swen1 SS-A`
-- generate specific markdown file only: `generate_moodle.py bif3-swen1 Class-1 java-kickstart.md`
+- generate complete course BIF3/SWEN1:  `python generate.py moodle bif3-swen1`
+- generate specific topic SS-A only:    `python generate.py moodle bif3-swen1 SS-A`
+- generate specific markdown file only: `python generate.py moodle bif3-swen1 Class-1 java-kickstart.md`
 
 This will generate a Moodle Backup ZIP-File (.mbz) in the [output/](./output) subdirectory of your course directory. Just restore it in your Moodle LMS.
 
 How the script works:
-- it will recursivly collect all .md files having set `marp: true` in the contents.
+- it will recursivly collect all .md files
+    - if a file has `marp: true` in the contents, Moodle resource and SCORM activities are created
+    - if a file has `moodle: true`, Moodle lesson activities are created
 - the activity name will be taken from the `title` property
 - the section name will be taken from the directorys name where the .md-file is stored, or from the filename itself
 - if in the containig directory there is a README.md, the section title will be taken from there (the first line with `# ...`)
@@ -107,7 +109,7 @@ git clone <your-remote-repo> ./courses/<course-dir>
 Then run the generation process, e.g.
 
 ```shell
-python generate_moodle.py <course-dir> [<filter_topic>] [<filter_md_file>]
+python generate.py moodle <course-dir> [<filter_topic>] [<filter_md_file>]
 ```
 
 Afterwards you'll find all the generated artifacts in `/app/courses/<course-dir>/output/`.
