@@ -3,9 +3,8 @@
 import os
 import sys
 
-from markslidego.markdown_utils import get_md_info
+from markslidego.markdown.reader import MarkdownReader
 from markslidego.moodle.backup import MoodleBackup
-from markslidego.markdown_utils import get_marp_info
 
 
 # ------------------- Main Program -------------------
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     course_name = os.path.basename(course_path)
     course_title = course_name.replace("-", " ").title()
     # if README.md exists, use the first line as course name
-    course_info = get_md_info("README.md")
+    course_info = MarkdownReader.get_md_info("README.md")
     if course_info is not None and 'title' in course_info:
         course_title = course_info['title']
     print(f"Generating course '{course_title}' from {course_path}:")
@@ -65,7 +64,7 @@ if __name__ == "__main__":
                     continue
 
                 md_file = os.path.join(root, file).replace("\\", "/").lstrip("./") 
-                marp_info = get_marp_info(md_file)
+                marp_info = MarkdownReader(md_file).metadata
                 if marp_info is None:
                     continue
                 
@@ -87,5 +86,5 @@ if __name__ == "__main__":
 
 
     # Generate the moodle backup .mbz file
-    generator.generate_mbz(course_name + ".mbz", removeIntermediateFiles=False, replaceExisting=True)
-    generator.generate_zip(course_name + ".zip", removeIntermediateFiles=False, replaceExisting=True)
+    generator.generate_mbz(course_name + ".mbz", remove_intermediate_files=False, replace_existing=True)
+    generator.generate_zip(course_name + ".zip", remove_intermediate_files=False, replace_existing=True)

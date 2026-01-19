@@ -8,6 +8,7 @@ from markslidego.moodle.base import MoodleBase
 
 
 class MoodleSection(MoodleBase):
+    """ Class to represent a Moodle section in the backup structure. """
 
     next_section_id = 30000
 
@@ -58,7 +59,7 @@ class MoodleSection(MoodleBase):
   </course_format_options>
 </section>
 """
-        with open(f"section.xml", "w", encoding="utf-8") as f:
+        with open("section.xml", "w", encoding="utf-8") as f:
             f.write(file_content)
 
 

@@ -10,6 +10,7 @@ from markslidego.moodle.section import MoodleSection
 
 
 class MoodleActivity(MoodleBase):
+    """ Class to represent a Moodle activity in the backup structure. """
 
     next_activity_id = 20000
     next_module_id = 25000

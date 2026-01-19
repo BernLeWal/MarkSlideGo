@@ -7,12 +7,13 @@ import os
 import xml.etree.ElementTree as ET
 import zipfile
 import sys
-from markslidego.moodle.base import MoodleBase
 from typing import override
+from markslidego.moodle.base import MoodleBase
 
 
 
 class MoodleFile(MoodleBase):
+    """ Class to represent a Moodle file in the backup structure. """
 
     next_file_id = 10000
     next_context_id = 15000
@@ -26,8 +27,8 @@ class MoodleFile(MoodleBase):
         if context_id != 0:
             self.context_id = context_id
         else:
-          self.context_id = MoodleFile.next_context_id
-          MoodleFile.next_context_id += 1
+            self.context_id = MoodleFile.next_context_id
+            MoodleFile.next_context_id += 1
         self.filepath = filepath
         self.subdir = ""
         self.filearea = filearea
@@ -59,6 +60,7 @@ class MoodleFile(MoodleBase):
 
     @staticmethod
     def get_mime_type(filepath:str) -> str:
+        """ Return the mime type based on the file extension. """
         # very basic mime type detection based on file extension
         ext = os.path.splitext(filepath)[1].lower()
         if ext == ".pdf":
@@ -95,6 +97,7 @@ class MoodleFile(MoodleBase):
 
     @override
     def generate(self) -> None:
+        """ Generate the file content in the appropriate directory structure. """
         files_subdir = self.content_hash[0:2]
         os.makedirs(f"{files_subdir}", exist_ok=True)
         os.chdir(f"{files_subdir}")
@@ -111,7 +114,7 @@ class MoodleFile(MoodleBase):
 
 
     def copy_file_to(self, target_dir:str) -> bool:
-        # copy file contents to target_dir
+        """ Copy the file to the specified target directory. """
         source_filepath = os.path.join("..", "..", self.filepath)
         if os.path.exists(source_filepath):
             target_filepath = os.path.join(target_dir, self.filename)
@@ -129,6 +132,7 @@ class MoodleFile(MoodleBase):
 
     @staticmethod
     def parse_imsmanifest(xml_string:str) -> dict:
+        """ Parse imsmanifest.xml and return a dictionary of relevant entries. """
         ns = {'imscp': 'http://www.imsglobal.org/xsd/imscp_v1p1'}
         result = {}
 
@@ -167,6 +171,7 @@ class MoodleFile(MoodleBase):
 
     @staticmethod
     def unzip_and_add(zip_filepath:str, component:str="mod_scorm") -> list:
+        """ Unzip the specified zip file and create MoodleFile instances for each file inside. """
         zip_contents_dir = zip_filepath.replace(".zip", "_unzipped")
         if not os.path.exists(zip_filepath):
             print(f"Error: Zip file {zip_filepath} does not exist.", file=sys.stderr)
@@ -192,6 +197,7 @@ class MoodleFile(MoodleBase):
 
     @staticmethod
     def remove_intermediate_dirs():
+        """ Remove all intermediate directories created during file operations. """
         for intermediate_dir in MoodleFile.intermediate_dirs:
             if os.path.exists(intermediate_dir):
                 for root, dirs, files in os.walk(intermediate_dir, topdown=False):

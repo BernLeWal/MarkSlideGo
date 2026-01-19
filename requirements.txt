@@ -19,6 +19,7 @@ isort==5.13.2
 jsonschema==4.23.0
 jsonschema-specifications==2023.12.1
 lxml==5.2.2
+Markdown==3.10
 mccabe==0.7.0
 multidict==6.0.5
 openai==1.35.13
@@ -36,7 +37,7 @@ pymupdf4llm==0.0.17
 PyMuPDFb==1.23.22
 PyPDF2==3.0.1
 pytesseract==0.3.10
-pytest==8.4.2
+pytest==9.0.2
 python-dotenv==1.0.1
 python-pptx==0.6.23
 PyYAML==6.0.1

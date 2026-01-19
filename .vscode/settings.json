@@ -1,5 +1,10 @@
 {
     "markdown.marp.themes": [
         "./catalogs/fhtw/_template/fhtw.css"
-    ]
+    ],
+    "python.testing.pytestArgs": [
+        "test"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

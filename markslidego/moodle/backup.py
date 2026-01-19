@@ -8,16 +8,17 @@ import os
 from typing import override
 from markslidego.file_utils import remove_dir_recursively, remove_file_if_exists, zip_current_directory
 from markslidego.generate import create_ims_manifest, generate, is_source_newer
+from markslidego.markdown.reader import MarkdownReader
 from markslidego.moodle.base import MoodleBase
 from markslidego.moodle.file import MoodleFile
 from markslidego.moodle.activity import MoodleActivity
 from markslidego.moodle.course import MoodleCourse
 from markslidego.moodle.section import MoodleSection
-from markslidego.markdown_utils import get_md_info
 
 
 
 class MoodleBackup(MoodleBase):
+    """ Class to represent a complete Moodle backup structure. """
     def __init__(self, course_name, course_title, course_id):
         super().__init__()
         self.course = MoodleCourse(course_name, course_title, course_id)
@@ -65,7 +66,7 @@ class MoodleBackup(MoodleBase):
 
 
     def __generate_groups__(self) -> None:
-        file_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+        file_content = """<?xml version="1.0" encoding="UTF-8"?>
 <groups>
   <groupcustomfields>
   </groupcustomfields>
@@ -312,7 +313,7 @@ class MoodleBackup(MoodleBase):
 
     def create_section(self, md_file:str, topic_name:str) -> MoodleSection:
         """ Factory method to create a MoodleSection and add it to the backup """
-        topic_info = get_md_info(os.path.join(os.path.dirname(md_file), "README.md"))
+        topic_info = MarkdownReader.get_md_info(os.path.join(os.path.dirname(md_file), "README.md"))
         topic_title = topic_name.replace("-", " ").title()
         topic_desc = ""
         if topic_info is not None and 'title' in topic_info:
@@ -361,14 +362,15 @@ class MoodleBackup(MoodleBase):
         self.activities.append(moodle_activity)
 
 
-    def generate_mbz(self, mbz_filename:str, removeIntermediateFiles:bool = False, replaceExisting:bool = True) -> None:
+    def generate_mbz(self, mbz_filename:str, remove_intermediate_files:bool = False, replace_existing:bool = True) -> None:
+        """ Generate the Moodle backup .mbz file. """
         os.makedirs("output", exist_ok=True)
         os.chdir("output")
         mbz_directory = mbz_filename.replace(".mbz", "")
-        if replaceExisting:
+        if replace_existing:
             remove_dir_recursively(mbz_directory)
             remove_file_if_exists(mbz_filename)
-        os.makedirs(mbz_directory, exist_ok=not replaceExisting)
+        os.makedirs(mbz_directory, exist_ok=not replace_existing)
         os.chdir(mbz_directory)
 
         self.__generate_files__()
@@ -410,7 +412,7 @@ class MoodleBackup(MoodleBase):
         self.generate()
 
         zip_current_directory(".mbz")
-        if removeIntermediateFiles and os.path.exists(mbz_directory):
+        if remove_intermediate_files and os.path.exists(mbz_directory):
             remove_dir_recursively(mbz_directory)
         os.chdir("..")  # leave mbz directory
 
@@ -419,14 +421,15 @@ class MoodleBackup(MoodleBase):
         print(f"Generated {mbz_filename} with {len(self.sections)} sections, {len(self.activities)} activities, and {len(self.files)} files.")
 
 
-    def generate_zip(self, zip_filename:str, removeIntermediateFiles:bool = False, replaceExisting:bool = True) -> None:
+    def generate_zip(self, zip_filename:str, remove_intermediate_files:bool = False, replace_existing:bool = True) -> None:
+        """ Generate the Moodle backup .zip file. """
         os.makedirs("output", exist_ok=True)
         os.chdir("output")
         zip_directory = zip_filename.replace(".zip", "")
-        if replaceExisting:
+        if replace_existing:
             remove_dir_recursively(zip_directory)
             remove_file_if_exists(zip_filename)
-        os.makedirs(zip_directory, exist_ok=not replaceExisting)
+        os.makedirs(zip_directory, exist_ok=not replace_existing)
         os.chdir(zip_directory)
         filecount = 0
 
@@ -443,7 +446,7 @@ class MoodleBackup(MoodleBase):
                                 filecount += 1
 
         zip_current_directory()
-        if removeIntermediateFiles and os.path.exists(zip_directory):
+        if remove_intermediate_files and os.path.exists(zip_directory):
             remove_dir_recursively(zip_directory)
         os.chdir("..")  # leave zip directory
 

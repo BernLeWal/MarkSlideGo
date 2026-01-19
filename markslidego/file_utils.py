@@ -21,13 +21,12 @@ def remove_file_if_exists(filepath:str) -> None:
 
 
 def zip_current_directory(extension:str = ".zip") -> None:
+    """ Create a zip archive of the current directory """
     archive_filename = os.path.basename(os.getcwd()) + extension
     zip_path = os.path.join("..", archive_filename)
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk("."):
+        for root, _, files in os.walk("."):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, ".")
                 zipf.write(file_path, arcname)
-
-

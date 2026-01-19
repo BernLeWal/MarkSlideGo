@@ -8,6 +8,7 @@ from markslidego.moodle.base import MoodleBase
 
 
 class MoodleCourse(MoodleBase):
+    """ Class to represent a Moodle course in the backup structure. """
     def __init__(self, name, title, course_id):
         super().__init__()
         self.name = name
