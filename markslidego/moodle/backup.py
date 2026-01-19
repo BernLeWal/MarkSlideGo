@@ -311,7 +311,7 @@ class MoodleBackup(MoodleBase):
             f.write(file_content)
 
 
-    def create_section(self, md_file:str, topic_name:str) -> MoodleSection:
+    def create_section(self, md_file:str, topic_name:str, topic_nr:int = 0) -> MoodleSection:
         """ Factory method to create a MoodleSection and add it to the backup """
         topic_info = MarkdownReader.get_md_info(os.path.join(os.path.dirname(md_file), "README.md"))
         topic_title = topic_name.replace("-", " ").title()
@@ -321,42 +321,62 @@ class MoodleBackup(MoodleBase):
             topic_desc = topic_info['description']
 
         print(f"Creating section {topic_name}: {topic_title}")
-        section = MoodleSection(topic_name, topic_title, len(self.sections)+1)
+        if topic_nr == 0:
+            topic_nr = len(self.sections) + 1
+        section = MoodleSection(topic_name, topic_title, topic_nr)
         section.summary = topic_desc
         self.sections[topic_name] = section
         return section
 
 
-    def create_activity(self, section:MoodleSection, activity_title:str, target_file:str, source_file:str, options):
+    def create_activity_file(self, section:MoodleSection, activity_title:str, target_file:str, source_file:str):
         """ Factory method to create a MoodleActivity and add it to the backup """
-        if options is not None and '--scorm' in options:
-            is_scorm = True
-        else:
-            is_scorm = False
+        if is_source_newer(source_file, target_file):
+            print(f"Generating material: {source_file} -> {target_file}")
+            generate(source_file, target_file, None)
 
+        activity_name = os.path.splitext(os.path.basename(target_file))[0]
+        print(f"Creating file-activity {activity_name} from {target_file}")
+        moodle_activity = MoodleActivity(activity_name, activity_title, "resource")
+        moodle_file = MoodleFile(target_file)
+        moodle_activity.files.append(moodle_file)
+        self.files.append(moodle_file)
+
+        section.activities.append(moodle_activity)
+        moodle_activity.section = section
+        self.activities.append(moodle_activity)
+
+
+    def create_activity_scorm(self, section:MoodleSection, activity_title:str, target_file:str, source_file:str):
+        """ Factory method to create a MoodleActivity and add it to the backup """
         if is_source_newer(source_file, target_file):
             course_title = self.course.title
             course_name = self.course.name
             print(f"Generating material: {source_file} -> {target_file}")
-            if is_scorm:
-                create_ims_manifest(target_file, course_name, course_title, activity_title)
+            create_ims_manifest(target_file, course_name, course_title, activity_title)
+            generate(source_file, target_file, None)
 
-            generate(source_file, target_file, options)
-
-        if is_scorm:
-            target_file = target_file.replace(".html", ".zip")
+        target_file = target_file.replace(".html", ".zip")
 
         activity_name = os.path.splitext(os.path.basename(target_file))[0]
-        print(f"Creating activity {activity_name} from {target_file} scorm={is_scorm}")
-        moodle_activity = MoodleActivity(activity_name, activity_title, "scorm" if is_scorm else "resource")
-        if is_scorm:
-            scorm_files = MoodleFile.unzip_and_add(target_file)
-            moodle_activity.files.extend(scorm_files)
-            self.files.extend(scorm_files)
-        else:
-            moodle_file = MoodleFile(target_file)
-            moodle_activity.files.append(moodle_file)
-            self.files.append(moodle_file)
+        print(f"Creating SCORM-activity {activity_name} from {target_file}")
+        moodle_activity = MoodleActivity(activity_name, activity_title, "scorm")
+        scorm_files = MoodleFile.unzip_and_add(target_file)
+        moodle_activity.files.extend(scorm_files)
+        self.files.extend(scorm_files)
+
+        section.activities.append(moodle_activity)
+        moodle_activity.section = section
+        self.activities.append(moodle_activity)
+
+
+    def create_activity_lesson(self, section:MoodleSection, lesson_md:MarkdownReader):
+        """ Factory method to create a MoodleActivity and add it to the backup """
+        activity_name = os.path.splitext(os.path.basename(lesson_md.filepath))[0]
+        activity_title = lesson_md.metadata['title'] if 'title' in lesson_md.metadata else activity_name.replace("-", " ").title()
+        print(f"Creating lesson-activity {activity_name} from {lesson_md.filepath}")
+        moodle_activity = MoodleActivity(activity_name, activity_title, "lesson", lesson_md)
+
         section.activities.append(moodle_activity)
         moodle_activity.section = section
         self.activities.append(moodle_activity)

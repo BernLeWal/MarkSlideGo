@@ -62,15 +62,21 @@ class MarkdownPage:
         lines = []
         for line in self.content.splitlines():
             stripped = line.strip()
+            # Remove Moodle links
             if stripped.startswith('[') and '](' in stripped:
                 start = stripped.find('](moodle:')
                 end = stripped.find(')', start)
                 if end != -1:
-                    # Remove the Moodle link
                     continue
+            # Remove comments
             if stripped.startswith('<!--') and stripped.endswith('-->'):
-                # Remove comments
                 continue
+            # Remove title
+            if self.title is not None:
+                if stripped.startswith('# ') or stripped.startswith('## ') or stripped.startswith('### '):
+                    if stripped.endswith(self.title):
+                        continue
+
             lines.append(line)
         return '\n'.join(lines)
 
@@ -83,6 +89,12 @@ class MarkdownPage:
             return html
         except ImportError:
             return "<p>Error: markdown module not installed.</p>"
+
+
+    @staticmethod
+    def html_to_xml(html: str) -> str:
+        """ Convert HTML content to XML-safe format. """
+        return html.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
     def __str__(self) -> str:

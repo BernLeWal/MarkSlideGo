@@ -13,6 +13,7 @@ class MarkdownReader:
         self.filepath = filepath
         self.metadata: dict[str, str] = {}
         self.is_marp: bool = False
+        self.is_moodle: bool = False
         self.content: str = ""
         self.pages: list[MarkdownPage] = []
 
@@ -79,6 +80,8 @@ class MarkdownReader:
                 self.metadata[key] = parsed_val
                 if key == 'marp' and parsed_val is True:
                     self.is_marp = True
+                if key == 'moodle' and parsed_val is True:
+                    self.is_moodle = True
 
         with open(self.filepath, 'r', encoding='utf-8') as f:
             self.content = f.read()

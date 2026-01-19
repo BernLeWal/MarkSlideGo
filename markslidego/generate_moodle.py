@@ -63,25 +63,30 @@ if __name__ == "__main__":
                 if filter_md_file is not None and file != filter_md_file:
                     continue
 
-                md_file = os.path.join(root, file).replace("\\", "/").lstrip("./") 
-                marp_info = MarkdownReader(md_file).metadata
-                if marp_info is None:
+                md_filepath = os.path.join(root, file).replace("\\", "/").lstrip("./") 
+                md_file = MarkdownReader(md_filepath)
+                if md_file.metadata is None:
                     continue
                 
-                topic_name = os.path.dirname(md_file)
+                topic_name = os.path.dirname(md_filepath)
                 if topic_name is None or topic_name == "":
-                    topic_name = os.path.basename(md_file).replace(".md", "")
+                    topic_name = os.path.basename(md_filepath).replace(".md", "")
                 if filter_topic_name is not None and topic_name != filter_topic_name:
                     continue
-                print(f"- {md_file}: topic_name={topic_name}")
+                topic_nr = int(md_file.metadata.get('section_number', "0"))
+                print(f"- {md_filepath}: topic_name={topic_name}, topic_nr={topic_nr}")
 
                 section = generator.sections[topic_name] if topic_name in generator.sections else None
                 if section is None:
-                    section = generator.create_section(md_file, topic_name)
+                    section = generator.create_section(md_filepath, topic_name, topic_nr)
 
-                activity_title = marp_info['title'] if 'title' in marp_info else os.path.basename(md_file).replace(".md", "").replace("-", " ").title()
-                generator.create_activity(section, activity_title, md_file.replace(".md", ".html"), md_file, "--scorm")
-                generator.create_activity(section, activity_title + " (PDF)", md_file.replace(".md", ".pdf"), md_file, None)
+                if md_file.is_marp:
+                    activity_title = md_file.metadata['title'] if 'title' in md_file.metadata else os.path.basename(md_filepath).replace(".md", "").replace("-", " ").title()
+                    generator.create_activity_scorm(section, activity_title, md_filepath.replace(".md", ".html"), md_filepath)
+                    generator.create_activity_file(section, activity_title + " (PDF)", md_filepath.replace(".md", ".pdf"), md_filepath)
+                    
+                if md_file.is_moodle:
+                    generator.create_activity_lesson(section, md_file)
 
 
 
