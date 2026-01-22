@@ -354,7 +354,7 @@ class MoodleBackup(MoodleBase):
             course_name = self.course.name
             print(f"Generating material: {source_file} -> {target_file}")
             create_ims_manifest(target_file, course_name, course_title, activity_title)
-            generate(source_file, target_file, None)
+            generate(source_file, target_file, ["--scorm"])
 
         target_file = target_file.replace(".html", ".zip")
 
