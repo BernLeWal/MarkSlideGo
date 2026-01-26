@@ -9,7 +9,7 @@ section_number: 2
 ---
 
 # Exercise introduction
-<!-- TYPE:CONTENT -->
+
 
 This exercise activity is to get used to the Practice Exercise lesson activity in moodle, which you must follow in the class.
 
@@ -29,7 +29,7 @@ Agree with that rules to go on with the next page.
 ---
 
 # Step 1: Create a new Java Project
-<!-- TYPE:CONTENT -->
+
 
 * Open your Java IDE (IntelliJ) and create a new Java Project for a Hello-World Application.
 * Choose appropriate names for the project, packages and classes (according to the Java coding-conventions)
@@ -46,7 +46,7 @@ When done go on to the next page to answer some questions about the code you hav
 ---
 
 # Step 2: Create a new main class
-<!-- TYPE:CONTENT -->
+
 
 Create a new class for the HelloWorld Application which also contains the entry point for the Java application.
 
@@ -92,7 +92,7 @@ Create a git commit with all your files and the comment-text "step1" now.
 ---
 
 # Code-Review
-<!-- TYPE:CONTENT -->
+
 
 Within the practice-class the lecturer will once be at your desk and oraly talk about the status of your lesson, asking you question(s).
 
@@ -123,7 +123,7 @@ Note: Just state the relevant things - it is not necessary to write an essay!
 ---
 
 # Submit ZIP-Archive of your source-project
-<!-- TYPE:CONTENT -->
+
 
 At the end of the practice, the complete ZIP-Archive of the project must be submitted.
 
